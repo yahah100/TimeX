@@ -15,6 +15,7 @@ from txai.utils.data.preprocess import process_MITECG
 from txai.synth_data.simple_spike import SpikeTrainDataset
 from txai.utils.data.preprocess import process_Epilepsy, process_PAM
 from txai.utils.constants import DATA_ROOT, PROJECT_ROOT
+from txai.utils.reproducibility import seed_everything
 
 WINIT_ROOT = PROJECT_ROOT / 'txai' / 'baselines' / 'WinIT'
 if str(WINIT_ROOT) not in sys.path:
@@ -212,7 +213,9 @@ if __name__ == "__main__":
     parser.add_argument('--models_path', type = str, help = 'path to store models')
     parser.add_argument('--data_path', default=DATA_ROOT, type=Path, help='path to datasets root')
     parser.add_argument('--epochs', type=int, default=1000)
+    parser.add_argument('--seed', type=int, default=0, help='base random seed (default: 0)')
     args = parser.parse_args()
     for split_no in range(1, 6):
+        seed_everything(args.seed + split_no - 1)
         args.split_no = split_no
         train_generator(args)

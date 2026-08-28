@@ -15,6 +15,7 @@ from txai.utils.data.datasets import DatasetwInds
 from txai.utils.predictors.loss_cl import *
 from txai.utils.predictors.select_models import *
 from txai.utils.constants import dataset_path
+from txai.utils.reproducibility import seed_everything
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -103,6 +104,7 @@ def main(args):
     targs = transformer_default_args
 
     for i in range(1, 6):
+        seed_everything(args.seed + i - 1)
         D = process_Synth(split_no = i, device = device, base_path = dataset_path('FreqShape'))
         dset = DatasetwInds(D['train_loader'].X.to(device), D['train_loader'].times.to(device), D['train_loader'].y.to(device))
         train_loader = torch.utils.data.DataLoader(dset, batch_size = 64, shuffle = True)
@@ -211,6 +213,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--r', type = float, default = 0.5, help = 'r for GSAT loss')
     parser.add_argument('--lam', type = float, default = 1.0, help = 'lambda between label alignment and consistency loss')
+    parser.add_argument('--seed', type=int, default=0, help='base random seed (default: 0)')
 
     args = parser.parse_args()
 

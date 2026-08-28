@@ -8,6 +8,7 @@ datasets="all"
 methods="ours,ig,dyna,winit"
 stage="all"
 winit_epochs=1000
+seed=0
 results_dir="$repo_root/results/table1"
 
 usage() {
@@ -22,6 +23,7 @@ Options:
   --methods LIST        ours,ig,dyna,winit (comma-separated)
   --stage STAGE         all, train, or evaluate
   --winit-epochs N      WinIT generator epochs (default: 1000)
+  --seed N              Base random seed (default: 0)
   --results-dir PATH    Log directory (default: results/table1)
   -h, --help            Show this help
 
@@ -42,6 +44,7 @@ while [[ $# -gt 0 ]]; do
         --methods) methods="$2"; shift 2 ;;
         --stage) stage="$2"; shift 2 ;;
         --winit-epochs) winit_epochs="$2"; shift 2 ;;
+        --seed) seed="$2"; shift 2 ;;
         --results-dir) results_dir="$2"; shift 2 ;;
         -h|--help) usage 0 ;;
         *) echo "Unknown option: $1" >&2; usage 2 ;;
@@ -98,11 +101,11 @@ train_dataset() {
     esac
 
     run_logged "$results_dir/${dataset}_predictor_train.log" \
-        uv run python "$experiment_dir/train_transformer.py"
+        uv run python "$experiment_dir/train_transformer.py" --seed "$seed"
 
     if contains "$methods" ours; then
         run_logged "$results_dir/${dataset}_timex_train.log" \
-            uv run python "$experiment_dir/bc_model_ptype.py"
+            uv run python "$experiment_dir/bc_model_ptype.py" --seed "$seed"
     fi
 
     if contains "$methods" winit; then
@@ -116,7 +119,8 @@ train_dataset() {
             uv run python experiments/evaluation/winit_wrapper.py \
                 --dataset "$eval_name" \
                 --models_path "$experiment_dir/models" \
-                --epochs "$winit_epochs"
+                --epochs "$winit_epochs" \
+                --seed "$seed"
     fi
 }
 
@@ -152,7 +156,8 @@ evaluate_dataset() {
                 --dataset "$eval_name" \
                 --exp_method "$method" \
                 --split_no -1 \
-                --model_path "$model_path"
+                --model_path "$model_path" \
+                --seed "$seed"
     done
 }
 

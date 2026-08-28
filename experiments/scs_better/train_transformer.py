@@ -1,5 +1,7 @@
-import torch
+import argparse
 from pathlib import Path
+
+import torch
 
 from txai.utils.predictors.loss import Poly1CrossEntropyLoss
 from txai.trainers.train_transformer import train
@@ -8,6 +10,11 @@ from txai.utils.data import process_Synth
 from txai.utils.predictors import eval_mvts_transformer
 from txai.synth_data.simple_spike import SpikeTrainDataset
 from txai.utils.constants import dataset_path
+from txai.utils.reproducibility import seed_everything
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--seed', type=int, default=0, help='base random seed (default: 0)')
+args = parser.parse_args()
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -19,6 +26,7 @@ clf_criterion = Poly1CrossEntropyLoss(
 )
 
 for i in range(1, 6):
+    seed_everything(args.seed + i - 1)
     D = process_Synth(split_no = i, device = device, base_path = dataset_path('SeqCombSingle'))
     train_loader = torch.utils.data.DataLoader(D['train_loader'], batch_size = 64, shuffle = True)
 

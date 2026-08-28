@@ -15,6 +15,7 @@ from txai.utils.data.preprocess import process_MITECG, process_Boiler
 from txai.synth_data.simple_spike import SpikeTrainDataset
 from txai.utils.data.preprocess import process_Epilepsy, process_PAM
 from txai.utils.constants import DATA_ROOT
+from txai.utils.reproducibility import seed_everything
 
 try:
     from txai.utils.data.anomaly import process_Yahoo
@@ -439,12 +440,14 @@ if __name__ == '__main__':
     parser.add_argument('--org_v', action = 'store_true')
     parser.add_argument('--data_path', default=DATA_ROOT, type=Path, help='path to datasets root')
     parser.add_argument('--savepath', default = None, type = str)
+    parser.add_argument('--seed', type=int, default=0, help='base random seed (default: 0)')
 
     args = parser.parse_args()
     if args.split_no == -1:
         # eval results on all splits
         results = {}
         for split in range(1, 6):
+            seed_everything(args.seed + split - 1)
             # replace model path with correct split
             args.model_path = re.sub("split=\d", f"split={split}", args.model_path)
             print("model path:", args.model_path)
@@ -458,4 +461,5 @@ if __name__ == '__main__':
         for k, v in results.items():
             print('\t{} \t = {:.4f} +- {:.4f}'.format(k, np.mean(v), np.std(v) / np.sqrt(len(v))))
     else:
+        seed_everything(args.seed + args.split_no - 1)
         main(args)

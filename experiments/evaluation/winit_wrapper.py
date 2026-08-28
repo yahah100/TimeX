@@ -1,6 +1,7 @@
 from time import time
 from argparse import ArgumentParser
 from pathlib import Path
+import sys
 
 
 import torch
@@ -13,9 +14,14 @@ from txai.utils.data import process_Synth
 from txai.utils.data.preprocess import process_MITECG
 from txai.synth_data.simple_spike import SpikeTrainDataset
 from txai.utils.data.preprocess import process_Epilepsy, process_PAM
-from txai.utils.constants import DATA_ROOT
-from txai.baselines.WinIT.winit.explainer.winitexplainers import WinITExplainer
-from txai.baselines.WinIT.winit.utils import aggregate_scores
+from txai.utils.constants import DATA_ROOT, PROJECT_ROOT
+
+WINIT_ROOT = PROJECT_ROOT / 'txai' / 'baselines' / 'WinIT'
+if str(WINIT_ROOT) not in sys.path:
+    sys.path.insert(0, str(WINIT_ROOT))
+
+from winit.explainer.winitexplainers import WinITExplainer
+from winit.utils import aggregate_scores
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

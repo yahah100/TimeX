@@ -355,7 +355,7 @@ def main(args):
             torch.save((Xsave,gexp,ysave,zx,zp), args.savepath) # Saves all needed info
 
     elif args.exp_method == "winit":
-        from winit_wrapper import WinITWrapper, aggregate_scores # Moved here bc of import issues on Owen's side
+        from winit_wrapper import WinITWrapper, aggregate_scores
         model = get_model(args, X)
         model.load_state_dict(torch.load(args.model_path))
         model.to(device)

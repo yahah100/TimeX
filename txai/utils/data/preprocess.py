@@ -4,8 +4,9 @@ import numpy as np
 import pandas as pd
 import sys, os
 from .utils_phy12 import *
+from txai.utils.constants import dataset_path
 
-base_path = '/home/owq978/TimeSeriesXAI/PAMdata/PAMAP2data/'
+base_path = dataset_path('PAM')
 
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 
@@ -173,7 +174,7 @@ def tensorize_normalize_ECG(P, y, mf, stdf):
     y_tensor = y_tensor.type(torch.LongTensor)
     return P_tensor, None, P_time, y_tensor
 
-ecg_base_path = '/home/owq978/TimeSeriesXAI/ECGdata/ECG'
+ecg_base_path = dataset_path('ECG')
 def process_ECG(split_no = 1, device = None, base_path = ecg_base_path):
 
     # train = torch.load(os.path.join(loc, 'train.pt'))
@@ -227,7 +228,7 @@ def process_ECG(split_no = 1, device = None, base_path = ecg_base_path):
 
     return train_chunk, val_chunk, test_chunk
 
-mitecg_base_path = '/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/MITECG'
+mitecg_base_path = dataset_path('MITECG')
 def process_MITECG(split_no = 1, device = None, hard_split = False, normalize = False, exclude_pac_pvc = False, balance_classes = False, div_time = False, 
         need_binarize = False, base_path = mitecg_base_path):
 
@@ -382,7 +383,7 @@ class EpiDataset(torch.utils.data.Dataset):
         y = self.y[idx]
         return x, T, y 
 
-epi_base_path = '/home/owq978/TimeSeriesXAI/ECGdata/Epilepsy'
+epi_base_path = dataset_path('Epilepsy')
 def process_Epilepsy(split_no = 1, device = None, base_path = epi_base_path):
 
     # train = torch.load(os.path.join(loc, 'train.pt'))
@@ -451,7 +452,7 @@ def decomposition_statistics(pool_layer, X):
 
     return d
 
-boiler_base_path = "/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/Boiler"
+boiler_base_path = dataset_path('Boiler')
 
 def process_Boiler(split_no = 1, device = None, base_path = boiler_base_path, normalize = False):
     x_full = torch.load(os.path.join(base_path, 'xfull.pt')).to(device).float()

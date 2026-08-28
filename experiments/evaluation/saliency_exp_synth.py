@@ -12,9 +12,14 @@ from txai.utils.experimental import get_explainer
 from txai.vis.vis_saliency import vis_one_saliency
 from txai.utils.data import process_Synth
 from txai.utils.data.preprocess import process_MITECG, process_Boiler
-from txai.utils.data.anomaly import process_Yahoo
 from txai.synth_data.simple_spike import SpikeTrainDataset
 from txai.utils.data.preprocess import process_Epilepsy, process_PAM
+from txai.utils.constants import DATA_ROOT
+
+try:
+    from txai.utils.data.anomaly import process_Yahoo
+except ImportError:
+    process_Yahoo = None
 
 from txai.models.modelv6_v2 import Modelv6_v2
 from txai.models.bc_model import TimeXModel
@@ -186,28 +191,30 @@ def main(args):
     elif Dname == 'seqcombsingle':
         D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombSingle')
     elif Dname == 'scs_better':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombSingleBetter')
+        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombSingle')
     elif Dname == 'seqcomb_mv':
         D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombMV')
     elif Dname == 'freqshapeud':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = '/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/FreqShapeUD')
+        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'FreqShapeUD')
     elif Dname == 'scs_inline':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = '/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/SeqCombSingleInline')
+        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombSingleInline')
     elif Dname == 'scs_fixone':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = '/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/SeqCombSingleFixOne')
+        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombSingleFixOne')
     elif Dname == 'mitecg_hard':
-        D = process_MITECG(split_no = args.split_no, device = device, hard_split = True, need_binarize = True, exclude_pac_pvc = True, base_path = Path(args.data_path) / 'MITECG-Hard')
+        D = process_MITECG(split_no = args.split_no, device = device, hard_split = True, need_binarize = True, exclude_pac_pvc = True, base_path = Path(args.data_path) / 'MITECG')
     elif Dname == 'lowvardetect':
         D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'LowVarDetect')
     elif Dname == 'boiler':
         D = process_Boiler(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'Boiler', 
             normalize = True)
     elif Dname == 'anomaly':
+        if process_Yahoo is None:
+            raise RuntimeError('The optional anomaly dataset loader is not included in this repository.')
         D = process_Yahoo(split_no = args.split_no, device = device, balance = False)
     elif Dname == 'epilepsy':
-        trainEpi, val, test = process_Epilepsy(split_no = args.split_no, device = device, base_path = '/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/Epilepsy/')
+        trainEpi, val, test = process_Epilepsy(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'Epilepsy')
     elif Dname == 'pam':
-        trainEpi, val, test = process_PAM(split_no = args.split_no, device = device, base_path = '/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/PAMAP2data/', gethalf = True)
+        trainEpi, val, test = process_PAM(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'PAM', gethalf = True)
     elif Dname == 'irreg':
         D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombMVIrreg')
     
@@ -430,7 +437,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_path', type = str, help = 'path to model')
     parser.add_argument('--model_type', type = str, default="transformer", choices=["transformer", "cnn", "lstm"])
     parser.add_argument('--org_v', action = 'store_true')
-    parser.add_argument('--data_path', default="/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/", type = str, help = 'path to datasets root')
+    parser.add_argument('--data_path', default=DATA_ROOT, type=Path, help='path to datasets root')
     parser.add_argument('--savepath', default = None, type = str)
 
     args = parser.parse_args()

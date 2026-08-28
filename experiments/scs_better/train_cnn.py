@@ -6,6 +6,7 @@ from txai.models.encoders.simple import CNN
 from txai.utils.data import process_Synth
 from txai.utils.predictors import eval_mvts_transformer
 from txai.synth_data.simple_spike import SpikeTrainDataset
+from txai.utils.constants import dataset_path
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -17,7 +18,7 @@ clf_criterion = Poly1CrossEntropyLoss(
 )
 
 for i in range(4, 6):
-    D = process_Synth(split_no = i, device = device, base_path = '/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/SeqCombSingleBetter')
+    D = process_Synth(split_no = i, device = device, base_path = dataset_path('SeqCombSingle'))
     train_loader = torch.utils.data.DataLoader(D['train_loader'], batch_size = 64, shuffle = True)
 
     val, test = D['val'], D['test']

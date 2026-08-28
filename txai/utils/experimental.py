@@ -7,6 +7,7 @@ from txai.utils.data.preprocess import zip_x_time_y
 from txai.utils.data import process_Synth, process_PAM, process_Epilepsy
 from txai.synth_data.generate_spikes import SpikeTrainDataset
 from txai.utils.data import EpiDataset#, PAMDataset
+from txai.utils.constants import dataset_path
 
 from txai.models.encoders.transformer_simple import TransformerMVTS
 # from txai.models.gumbelmask_model import GumbelMask
@@ -85,15 +86,15 @@ def get_dataset(data, split, device = None):
 
     if data == 'pam':
         train, val, test = process_PAM(split_no = split, device = device, 
-            base_path = '/home/owq978/TimeSeriesXAI/datasets/PAMAP2data/', gethalf = True)
+            base_path = dataset_path('PAM'), gethalf = True)
     
     elif (data == 'epi') or (data == 'epilepsy'):
         train, val, test = process_Epilepsy(split_no = split, device = device, 
-            base_path = '/home/owq978/TimeSeriesXAI/datasets/Epilepsy/')
+            base_path = dataset_path('Epilepsy'))
 
     elif (data == 'spike'):
         D = process_Synth(split_no = split, device = device, 
-            base_path = '/home/owq978/TimeSeriesXAI/datasets/Spike/simple/')
+            base_path = dataset_path('Spike') / 'simple')
         
         train = D['train_loader']
         val = D['val']

@@ -6,6 +6,7 @@ from txai.models.encoders.simple import CNN
 from txai.utils.data import process_Synth
 from txai.utils.predictors import eval_mvts_transformer
 from txai.synth_data.simple_spike import SpikeTrainDataset
+from txai.utils.constants import dataset_path
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -17,7 +18,7 @@ clf_criterion = Poly1CrossEntropyLoss(
 )
 
 for i in range(1, 6):
-    D = process_Synth(split_no = i, device = device, base_path = 'datasets/drive/datasets_and_models/FreqShape')
+    D = process_Synth(split_no = i, device = device, base_path = dataset_path('FreqShape'))
     train_loader = torch.utils.data.DataLoader(D['train_loader'], batch_size = 64, shuffle = True)
 
     val, test = D['val'], D['test']

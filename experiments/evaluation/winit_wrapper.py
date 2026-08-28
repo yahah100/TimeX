@@ -13,6 +13,7 @@ from txai.utils.data import process_Synth
 from txai.utils.data.preprocess import process_MITECG
 from txai.synth_data.simple_spike import SpikeTrainDataset
 from txai.utils.data.preprocess import process_Epilepsy, process_PAM
+from txai.utils.constants import DATA_ROOT
 from txai.baselines.WinIT.winit.explainer.winitexplainers import WinITExplainer
 from txai.baselines.WinIT.winit.utils import aggregate_scores
 
@@ -137,19 +138,19 @@ def train_generator(args):
     elif Dname == 'seqcombsingle':
         D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombSingle')
     elif Dname == 'scs_better':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombSingleBetter')
+        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombSingle')
     elif Dname == 'freqshapeud':
         D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'FreqShapeUD')
     elif Dname == 'seqcomb_mv':
         D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombMV')
     elif Dname == 'mitecg_hard':
-        D = process_MITECG(split_no = args.split_no, device = device, hard_split = True, need_binarize = True, exclude_pac_pvc = True, base_path = Path(args.data_path) / 'MITECG-Hard')
+        D = process_MITECG(split_no = args.split_no, device = device, hard_split = True, need_binarize = True, exclude_pac_pvc = True, base_path = Path(args.data_path) / 'MITECG')
     elif Dname == 'lowvardetect':
         D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'LowVarDetect')
     elif Dname == 'epilepsy':
-        trainEpi, val, test = process_Epilepsy(split_no = args.split_no, device = device, base_path = '/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/Epilepsy/')
+        trainEpi, val, test = process_Epilepsy(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'Epilepsy')
     elif Dname == 'pam':
-        trainEpi, val, test = process_PAM(split_no = args.split_no, device = device, base_path = '/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/PAMAP2data/', gethalf = True)
+        trainEpi, val, test = process_PAM(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'PAM', gethalf = True)
 
     winit_path = Path(args.models_path) / f"winit_split={args.split_no}/"
 
@@ -203,10 +204,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument('--dataset', type = str)
     parser.add_argument('--models_path', type = str, help = 'path to store models')
-    parser.add_argument('--data_path', default="/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/", type = str, help = 'path to datasets root')
+    parser.add_argument('--data_path', default=DATA_ROOT, type=Path, help='path to datasets root')
     parser.add_argument('--epochs', type=int, default=1000)
     args = parser.parse_args()
     for split_no in range(1, 6):
         args.split_no = split_no
         train_generator(args)
-        exit() # TEMP REMOVE LATER

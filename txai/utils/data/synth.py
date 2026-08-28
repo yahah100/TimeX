@@ -1,14 +1,20 @@
 import os
+import sys
 import torch
+from txai.utils.constants import dataset_path
 from txai.synth_data.generate_spikes import SpikeTrainDataset
 from txai.baselines.FIT.data_generator.data.clean_state_data import StateTrainDataset
 
-spike_path = '/home/owq978/TimeSeriesXAI/datasets/Spike/'
+spike_path = dataset_path('Spike')
 def process_Synth(split_no = 1, device = None, base_path = spike_path, regression = False,
         label_noise = None):
 
     split_path = os.path.join(base_path, 'split={}.pt'.format(split_no))
 
+    # Some published SeqComb files pickle this class under ``__main__``.
+    # Register the compatible dataset class so they load from any entry point.
+    if not hasattr(sys.modules['__main__'], 'SpikeTrainDataset'):
+        sys.modules['__main__'].SpikeTrainDataset = SpikeTrainDataset
     D = torch.load(split_path)
 
     D['train_loader'].X = D['train_loader'].X.float().to(device)

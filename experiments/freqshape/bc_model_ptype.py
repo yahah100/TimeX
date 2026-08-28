@@ -1,5 +1,6 @@
 import torch
 import argparse, os
+from pathlib import Path
 
 from txai.utils.predictors.loss import Poly1CrossEntropyLoss, GSATLoss_Extended, ConnectLoss_Extended
 from txai.utils.predictors.loss_smoother_stats import *
@@ -13,6 +14,7 @@ from txai.synth_data.simple_spike import SpikeTrainDataset
 from txai.utils.data.datasets import DatasetwInds
 from txai.utils.predictors.loss_cl import *
 from txai.utils.predictors.select_models import *
+from txai.utils.constants import dataset_path
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -48,15 +50,19 @@ def naming_convention(args):
 
 def main(args):
 
+    experiment_dir = Path(__file__).resolve().parent
+    model_dir = experiment_dir / 'models'
+    model_dir.mkdir(exist_ok=True)
+
     if args.lstm:
         arch = 'lstm'
-        tencoder_path = "/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/experiments/freqshape/formal_models/Freqshape_lstm_split={}.pt"
+        predictor_name = "Freqshape_lstm_split={}.pt"
     elif args.cnn:
         arch = 'cnn'
-        tencoder_path = "/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/experiments/freqshape/formal_models/Freqshape_cnn_split={}.pt"
+        predictor_name = "Freqshape_cnn_split={}.pt"
     else:
         arch = 'transformer'
-        tencoder_path = "/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/experiments/freqshape/formal_models/Scomb_transformer_split={}.pt"
+        predictor_name = "Scomb_transformer_split={}.pt"
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -97,7 +103,7 @@ def main(args):
     targs = transformer_default_args
 
     for i in range(1, 6):
-        D = process_Synth(split_no = i, device = device, base_path = '/n/data1/hms/dbmi/zitnik/lab/users/owq978/TimeSeriesCBM/datasets/FreqShape')
+        D = process_Synth(split_no = i, device = device, base_path = dataset_path('FreqShape'))
         dset = DatasetwInds(D['train_loader'].X.to(device), D['train_loader'].times.to(device), D['train_loader'].y.to(device))
         train_loader = torch.utils.data.DataLoader(dset, batch_size = 64, shuffle = True)
 
@@ -140,13 +146,14 @@ def main(args):
             masktoken_stats = (mu, std),
         )
 
-        model.encoder_main.load_state_dict(torch.load(tencoder_path.format(i)))
+        predictor_path = model_dir / predictor_name.format(i)
+        model.encoder_main.load_state_dict(torch.load(predictor_path))
         model.to(device)
 
         model.init_prototypes(train = (D['train_loader'].X.to(device), D['train_loader'].times.to(device), D['train_loader'].y.to(device)))
 
         if not args.ge_rand_init: # Copies if not running this ablation
-            model.encoder_t.load_state_dict(torch.load(tencoder_path.format(i)))
+            model.encoder_t.load_state_dict(torch.load(predictor_path))
 
         for param in model.encoder_main.parameters():
             param.requires_grad = False
@@ -157,8 +164,7 @@ def main(args):
         optimizer = torch.optim.AdamW(model.parameters(), lr = 1e-3, weight_decay = 0.001)
         
         model_suffix = naming_convention(args)
-        spath = os.path.join('models', model_suffix)
-        spath = spath.format(i)
+        spath = model_dir / model_suffix.format(i)
         print('saving at', spath)
 
         best_model = train_mv6_consistency(

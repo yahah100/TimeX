@@ -1,0 +1,210 @@
+#!/usr/bin/env bash
+#SBATCH --job-name=timex
+#SBATCH --partition=gpu
+#SBATCH --account=etechnik_gpu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gpus-per-task=1
+#SBATCH --cpus-per-task=16
+#SBATCH --time=3-00:00:00
+#SBATCH --signal=SIGHUP@90
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --mail-user=yhahn@uni-wuppertal.de
+#SBATCH --mail-type=END,FAIL
+
+set -Eeuo pipefail
+
+readonly DEFAULT_PROJECT_DIR="/beegfs/hahn/workspace/TimeX"
+readonly PROJECT_DIR="${TIMEX_CLUSTER_PROJECT_DIR:-${DEFAULT_PROJECT_DIR}}"
+SEEDS="42"
+
+usage() {
+    cat <<'EOF'
+Usage: sbatch sj_timex [--seed N | --seeds "N ..."]
+
+Run the complete Table 1 experiment on a Slurm GPU node. Each base seed runs
+both datasets, all five folds, and the ours, ig, dyna, and winit methods.
+
+Options:
+  --seed N          Run one base seed (default: 42)
+  --seeds "N ..."  Run multiple space-separated base seeds sequentially
+  -h, --help        Show this help
+
+Outputs are archived below:
+  /beegfs/hahn/workspace/TimeX/cluster_runs/timex_<job-id>/seed_<seed>/
+
+Set TIMEX_CLUSTER_PROJECT_DIR to override the persistent project/data/output
+root, which is useful when testing the job outside the production cluster.
+EOF
+}
+
+die() {
+    echo "Error: $*" >&2
+    exit 2
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --seed|--seeds)
+            [[ $# -ge 2 ]] || die "$1 requires a value"
+            SEEDS="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            die "unknown option: $1"
+            ;;
+    esac
+done
+
+[[ -n "${SEEDS//[[:space:]]/}" ]] || die "the seed list must not be empty"
+for seed in ${SEEDS}; do
+    [[ "${seed}" =~ ^[0-9]+$ ]] || die "invalid seed '${seed}'; expected non-negative integers"
+done
+
+: "${SLURM_JOB_ID:?This script must be run as a Slurm job}"
+: "${SLURM_SUBMIT_DIR:?SLURM_SUBMIT_DIR is not set}"
+: "${USER:?USER is not set}"
+
+readonly SUBMIT_DIR="${SLURM_SUBMIT_DIR}"
+readonly DATA_SOURCE="${PROJECT_DIR}/dataset"
+readonly WORK_DIR="/tmp/${USER}_${SLURM_JOB_ID}"
+readonly DATA_DIR="${WORK_DIR}/dataset"
+readonly ARCHIVE_DIR="${PROJECT_DIR}/cluster_runs/timex_${SLURM_JOB_ID}"
+
+ACTIVE_SEED_DIR=""
+ACTIVE_ARCHIVE_DIR=""
+
+require_file() {
+    [[ -f "$1" ]] || die "required file not found: $1"
+}
+
+require_dir() {
+    [[ -d "$1" ]] || die "required directory not found: $1"
+}
+
+sync_active_seed() {
+    [[ -n "${ACTIVE_SEED_DIR}" && -n "${ACTIVE_ARCHIVE_DIR}" ]] || return 0
+
+    mkdir -p "${ACTIVE_ARCHIVE_DIR}/results" "${ACTIVE_ARCHIVE_DIR}/models"
+
+    if [[ -d "${ACTIVE_SEED_DIR}/results" ]]; then
+        rsync -a "${ACTIVE_SEED_DIR}/results/" "${ACTIVE_ARCHIVE_DIR}/results/"
+    fi
+
+    for dataset in freqshape scs_better; do
+        model_dir="${ACTIVE_SEED_DIR}/repo/experiments/${dataset}/models"
+        if [[ -d "${model_dir}" ]]; then
+            mkdir -p "${ACTIVE_ARCHIVE_DIR}/models/${dataset}"
+            rsync -a "${model_dir}/" "${ACTIVE_ARCHIVE_DIR}/models/${dataset}/"
+        fi
+    done
+}
+
+clean_up() {
+    exit_status=$?
+    trap - EXIT HUP INT TERM
+    set +e
+
+    sync_active_seed
+    sync_status=$?
+    if [[ ${exit_status} -eq 0 && ${sync_status} -ne 0 ]]; then
+        exit_status=${sync_status}
+    fi
+
+    if [[ -d "${WORK_DIR}" && "${WORK_DIR}" == "/tmp/${USER}_${SLURM_JOB_ID}" ]]; then
+        rm -rf -- "${WORK_DIR}"
+    fi
+
+    echo "Cleanup finished with status ${exit_status}"
+    exit "${exit_status}"
+}
+
+handle_signal() {
+    signal_name="$1"
+    signal_status="$2"
+    echo "Received ${signal_name}; preserving partial outputs before exit" >&2
+    exit "${signal_status}"
+}
+
+trap clean_up EXIT
+trap 'handle_signal SIGHUP 129' HUP
+trap 'handle_signal SIGINT 130' INT
+trap 'handle_signal SIGTERM 143' TERM
+
+require_file "${SUBMIT_DIR}/run_table1.sh"
+require_file "${SUBMIT_DIR}/pyproject.toml"
+require_file "${SUBMIT_DIR}/.venv/bin/activate"
+require_file "${SUBMIT_DIR}/txai/baselines/WinIT/winit/explainer/winitexplainers.py"
+require_dir "${DATA_SOURCE}/FreqShape"
+require_dir "${DATA_SOURCE}/SeqCombSingle"
+command -v rsync >/dev/null 2>&1 || die "rsync is required"
+
+mkdir -p "${WORK_DIR}" "${DATA_DIR}" "${ARCHIVE_DIR}"
+
+echo "Job ID: ${SLURM_JOB_ID}"
+echo "Node list: ${SLURM_JOB_NODELIST:-unknown}"
+echo "Running on node: $(hostname)"
+echo "CPUs per task: ${SLURM_CPUS_PER_TASK:-unknown}"
+echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-unset}"
+echo "Submission directory: ${SUBMIT_DIR}"
+echo "Scratch directory: ${WORK_DIR}"
+echo "Archive directory: ${ARCHIVE_DIR}"
+echo "Base seeds: ${SEEDS}"
+date
+
+echo "Staging FreqShape and SeqCombSingle datasets"
+rsync -a "${DATA_SOURCE}/FreqShape" "${DATA_DIR}/"
+rsync -a "${DATA_SOURCE}/SeqCombSingle" "${DATA_DIR}/"
+
+# Dependencies remain in the persistent environment. UV_NO_SYNC prevents a
+# compute node from modifying it, while PYTHONPATH selects the staged source.
+source "${SUBMIT_DIR}/.venv/bin/activate"
+export UV_NO_SYNC=1
+export TIMEX_DATA_ROOT="${DATA_DIR}"
+export MPLBACKEND=Agg
+
+for seed in ${SEEDS}; do
+    seed_root="${WORK_DIR}/seed_${seed}"
+    repo_dir="${seed_root}/repo"
+    ACTIVE_SEED_DIR="${seed_root}"
+    ACTIVE_ARCHIVE_DIR="${ARCHIVE_DIR}/seed_${seed}"
+
+    mkdir -p "${repo_dir}" "${seed_root}/results"
+    echo "Staging source for base seed ${seed}"
+    rsync -a \
+        --exclude='.git/' \
+        --exclude='.venv/' \
+        --exclude='dataset/' \
+        --exclude='datasets/' \
+        --exclude='logs/' \
+        --exclude='results/' \
+        --exclude='cluster_runs/' \
+        --exclude='experiments/freqshape/models/' \
+        --exclude='experiments/scs_better/models/' \
+        "${SUBMIT_DIR}/" "${repo_dir}/"
+    ln -s "${SUBMIT_DIR}/.venv" "${repo_dir}/.venv"
+
+    export PYTHONPATH="${repo_dir}"
+    echo "=== Base seed ${seed} starting at $(date) ==="
+    (
+        cd "${repo_dir}"
+        ./run_table1.sh \
+            --datasets all \
+            --methods ours,ig,dyna,winit \
+            --stage all \
+            --seed "${seed}" \
+            --results-dir "${seed_root}/results"
+    )
+    echo "=== Base seed ${seed} completed at $(date) ==="
+
+    sync_active_seed
+    ACTIVE_SEED_DIR=""
+    ACTIVE_ARCHIVE_DIR=""
+done
+
+echo "Full Table 1 experiment completed. Outputs: ${ARCHIVE_DIR}"
+date

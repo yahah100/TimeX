@@ -17,14 +17,14 @@ from txai.utils.data.preprocess import process_Epilepsy, process_PAM
 from txai.utils.constants import DATA_ROOT, PROJECT_ROOT
 from txai.utils.reproducibility import seed_everything
 
-WINIT_ROOT = PROJECT_ROOT / 'txai' / 'baselines' / 'WinIT'
+WINIT_ROOT = PROJECT_ROOT / "txai" / "baselines" / "WinIT"
 if str(WINIT_ROOT) not in sys.path:
     sys.path.insert(0, str(WINIT_ROOT))
 
 from winit.explainer.winitexplainers import WinITExplainer
 from winit.utils import aggregate_scores
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class WinITWrapper(WinITExplainer):
@@ -69,22 +69,27 @@ class WinITWrapper(WinITExplainer):
 
         with torch.no_grad():
             tic = time()
-              
+
             batch_size, num_features, num_timesteps = x.shape
             scores = []
 
-            for t in tqdm(range(num_timesteps)):
+            show_progress = sys.stdout.isatty() and sys.stderr.isatty()
+            for t in tqdm(range(num_timesteps), disable=not show_progress):
                 window_size = min(t, self.window_size)
 
                 if t == 0:
-                    scores.append(np.zeros((batch_size, num_features, self.window_size)))
+                    scores.append(
+                        np.zeros((batch_size, num_features, self.window_size))
+                    )
                     continue
 
                 # x = (num_sample, num_feature, n_timesteps)
                 # times = (num_sample, n_timesteps)
                 p_y = self._model_predict(x[:, :, : t + 1], times[:, : t + 1])
 
-                iS_array = np.zeros((num_features, window_size, batch_size), dtype=float)
+                iS_array = np.zeros(
+                    (num_features, window_size, batch_size), dtype=float
+                )
                 for n in range(window_size):
                     time_past = t - n
                     time_forward = n + 1
@@ -95,15 +100,21 @@ class WinITWrapper(WinITExplainer):
                     for f in range(num_features):
                         # repeat input for num samples
                         x_hat_in = (
-                            x[:, :, : t + 1].unsqueeze(0).repeat(self.num_samples, 1, 1, 1)
+                            x[:, :, : t + 1]
+                            .unsqueeze(0)
+                            .repeat(self.num_samples, 1, 1, 1)
                         )  # (ns, bs, f, time)
                         # replace unknown with counterfactuals
-                        x_hat_in[:, :, f, time_past : t + 1] = counterfactuals[f, :, :, :]
+                        x_hat_in[:, :, f, time_past : t + 1] = counterfactuals[
+                            f, :, :, :
+                        ]
 
                         # Compute Q = p(y_t | tilde(X)^S_{t-n:t})
                         p_y_hat = self._model_predict(
-                            x_hat_in.reshape(self.num_samples * batch_size, num_features, t + 1), 
-                            times[:, : t+1].repeat([self.num_samples, 1])
+                            x_hat_in.reshape(
+                                self.num_samples * batch_size, num_features, t + 1
+                            ),
+                            times[:, : t + 1].repeat([self.num_samples, 1]),
                         )
 
                         # Compute P = p(y_t | X_{1:t})
@@ -128,11 +139,16 @@ class WinITWrapper(WinITExplainer):
 
                 # Pad the scores when time forward is less than window size.
                 if score.shape[2] < self.window_size:
-                    score = np.pad(score, ((0, 0), (0, 0), (self.window_size - score.shape[2], 0)))
+                    score = np.pad(
+                        score, ((0, 0), (0, 0), (self.window_size - score.shape[2], 0))
+                    )
                 scores.append(score)
-            print(f"Batch done: Time elapsed: {(time() - tic):.4f}")
+            if sys.stdout.isatty():
+                print(f"Batch done: Time elapsed: {(time() - tic):.4f}")
 
-            scores = np.stack(scores).transpose((1, 2, 0, 3))  # (bs, fts, ts, window_size)
+            scores = np.stack(scores).transpose(
+                (1, 2, 0, 3)
+            )  # (bs, fts, ts, window_size)
             return scores
 
 
@@ -140,52 +156,104 @@ def train_generator(args):
     Dname = args.dataset.lower()
 
     # Switch on loading test data:
-    if Dname == 'freqshape':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'FreqShape')
-    elif Dname == 'seqcombsingle':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombSingle')
-    elif Dname == 'scs_better':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombSingle')
-    elif Dname == 'freqshapeud':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'FreqShapeUD')
-    elif Dname == 'seqcomb_mv':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'SeqCombMV')
-    elif Dname == 'mitecg_hard':
-        D = process_MITECG(split_no = args.split_no, device = device, hard_split = True, need_binarize = True, exclude_pac_pvc = True, base_path = Path(args.data_path) / 'MITECG')
-    elif Dname == 'lowvardetect':
-        D = process_Synth(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'LowVarDetect')
-    elif Dname == 'epilepsy':
-        trainEpi, val, test = process_Epilepsy(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'Epilepsy')
-    elif Dname == 'pam':
-        trainEpi, val, test = process_PAM(split_no = args.split_no, device = device, base_path = Path(args.data_path) / 'PAM', gethalf = True)
+    if Dname == "freqshape":
+        D = process_Synth(
+            split_no=args.split_no,
+            device=device,
+            base_path=Path(args.data_path) / "FreqShape",
+        )
+    elif Dname == "seqcombsingle":
+        D = process_Synth(
+            split_no=args.split_no,
+            device=device,
+            base_path=Path(args.data_path) / "SeqCombSingle",
+        )
+    elif Dname == "scs_better":
+        D = process_Synth(
+            split_no=args.split_no,
+            device=device,
+            base_path=Path(args.data_path) / "SeqCombSingle",
+        )
+    elif Dname == "freqshapeud":
+        D = process_Synth(
+            split_no=args.split_no,
+            device=device,
+            base_path=Path(args.data_path) / "FreqShapeUD",
+        )
+    elif Dname == "seqcomb_mv":
+        D = process_Synth(
+            split_no=args.split_no,
+            device=device,
+            base_path=Path(args.data_path) / "SeqCombMV",
+        )
+    elif Dname == "mitecg_hard":
+        D = process_MITECG(
+            split_no=args.split_no,
+            device=device,
+            hard_split=True,
+            need_binarize=True,
+            exclude_pac_pvc=True,
+            base_path=Path(args.data_path) / "MITECG",
+        )
+    elif Dname == "lowvardetect":
+        D = process_Synth(
+            split_no=args.split_no,
+            device=device,
+            base_path=Path(args.data_path) / "LowVarDetect",
+        )
+    elif Dname == "epilepsy":
+        trainEpi, val, test = process_Epilepsy(
+            split_no=args.split_no,
+            device=device,
+            base_path=Path(args.data_path) / "Epilepsy",
+        )
+    elif Dname == "pam":
+        trainEpi, val, test = process_PAM(
+            split_no=args.split_no,
+            device=device,
+            base_path=Path(args.data_path) / "PAM",
+            gethalf=True,
+        )
 
     winit_path = Path(args.models_path) / f"winit_split={args.split_no}/"
-
 
     if Dname == "mitecg_hard":
         # make ecg data the same format as everything else
         train_loader, val, test, _ = D
-        train_loader = [(train_loader.X[:, i], train_loader.time[:, i], train_loader.y[i]) for i in range(train_loader.X.shape[1])]
+        train_loader = [
+            (train_loader.X[:, i], train_loader.time[:, i], train_loader.y[i])
+            for i in range(train_loader.X.shape[1])
+        ]
         val = (val.X, val.time, val.y)
         test = (test.X, test.time, test.y)
-    elif Dname in {'epilepsy', 'pam'}:
+    elif Dname in {"epilepsy", "pam"}:
         val = (val.X, val.time, val.y)
         test = (test.X, test.time, test.y)
-        #trainX = trainEpi.X
-        #train_loader, val, test, _ = D
-        train_loader = [(trainEpi.X[:, i], trainEpi.time[:, i], trainEpi.y[i]) for i in range(trainEpi.X.shape[1])]
+        # trainX = trainEpi.X
+        # train_loader, val, test, _ = D
+        train_loader = [
+            (trainEpi.X[:, i], trainEpi.time[:, i], trainEpi.y[i])
+            for i in range(trainEpi.X.shape[1])
+        ]
     else:
         train_loader, val, test = D["train_loader"], D["val"], D["test"]
 
+    expected_generators = [
+        winit_path / "feature_generator" / f"feature_{feature}_len_10_cond_False.pt"
+        for feature in range(test[0].shape[-1])
+    ]
+    if args.skip_existing and all(path.is_file() for path in expected_generators):
+        print(f"Skipping existing generators: {winit_path}")
+        return
+
     winit = WinITExplainer(
-        device, 
-        num_features=test[0].shape[-1], 
-        data_name=Dname, 
-        path=winit_path
+        device, num_features=test[0].shape[-1], data_name=Dname, path=winit_path
     )
 
     # NOTE: WinIT code expects time series of shape [n, features, time]
-    train_input = torch.stack([train_loader[i][0].permute(1, 0) for i in range(len(train_loader))])
+    train_input = torch.stack(
+        [train_loader[i][0].permute(1, 0) for i in range(len(train_loader))]
+    )
     train_label = torch.stack([train_loader[i][2] for i in range(len(train_loader))])
     train_ds = TensorDataset(train_input, train_label)
     # time, n, features -> n, features, time
@@ -194,9 +262,11 @@ def train_generator(args):
     val_dl = DataLoader(val_ds, batch_size=256)
     print("training generators...")
     start_time = time()
-    results = winit.train_generators(train_loader=train_dl, valid_loader=val_dl, num_epochs=args.epochs)
+    results = winit.train_generators(
+        train_loader=train_dl, valid_loader=val_dl, num_epochs=args.epochs
+    )
     end_time = time()
-    print('Time', end_time - start_time)
+    print("Time", end_time - start_time)
 
     plt.plot(results.train_loss_trends[0], label="train_loss")
     plt.plot(results.valid_loss_trends[0], label="valid_loss")
@@ -205,17 +275,22 @@ def train_generator(args):
     plt.savefig(winit_path / "loss.png")
 
 
-
-
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument('--dataset', type = str)
-    parser.add_argument('--models_path', type = str, help = 'path to store models')
-    parser.add_argument('--data_path', default=DATA_ROOT, type=Path, help='path to datasets root')
-    parser.add_argument('--epochs', type=int, default=1000)
-    parser.add_argument('--seed', type=int, default=0, help='base random seed (default: 0)')
+    parser.add_argument("--dataset", type=str)
+    parser.add_argument("--models_path", type=str, help="path to store models")
+    parser.add_argument(
+        "--data_path", default=DATA_ROOT, type=Path, help="path to datasets root"
+    )
+    parser.add_argument("--epochs", type=int, default=1000)
+    parser.add_argument(
+        "--seed", type=int, default=0, help="base random seed (default: 0)"
+    )
+    parser.add_argument("--split-no", type=int, choices=range(1, 6))
+    parser.add_argument("--skip-existing", action="store_true")
     args = parser.parse_args()
-    for split_no in range(1, 6):
+    splits = [args.split_no] if args.split_no else range(1, 6)
+    for split_no in splits:
         seed_everything(args.seed + split_no - 1)
         args.split_no = split_no
         train_generator(args)

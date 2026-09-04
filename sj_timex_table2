@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+#SBATCH --job-name=timex-table2
+#SBATCH --partition=gpu
+#SBATCH --account=etechnik_gpu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gpus-per-task=1
+#SBATCH --cpus-per-task=16
+#SBATCH --time=3-00:00:00
+#SBATCH --signal=SIGHUP@90
+#SBATCH --output=timex-table2-%j.out
+#SBATCH --mail-user=yhahn@uni-wuppertal.de
+#SBATCH --mail-type=END,FAIL
+
+set -Eeuo pipefail
+
+readonly DEFAULT_PROJECT_DIR="/beegfs/hahn/workspace/TimeX"
+readonly PROJECT_DIR="${TIMEX_CLUSTER_PROJECT_DIR:-$DEFAULT_PROJECT_DIR}"
+SEEDS="42"
+
+usage() {
+    cat <<'EOF'
+Usage: sbatch sj_timex_table2 [--seed N | --seeds "N ..."]
+
+Run both Table 2 datasets, all five folds, and all six methods on one GPU.
+Seeds run sequentially and default to 42. Outputs are archived under:
+  <project>/cluster_runs/timex_table2_<job-id>/seed_<seed>/
+
+TIMEX_CLUSTER_PROJECT_DIR overrides the persistent project/data/output root.
+EOF
+}
+die() { echo "Error: $*" >&2; exit 2; }
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --seed|--seeds) [[ $# -ge 2 ]] || die "$1 requires a value"; SEEDS="$2"; shift 2 ;;
+        -h|--help) usage; exit 0 ;;
+        *) die "unknown option: $1" ;;
+    esac
+done
+[[ -n "${SEEDS//[[:space:]]/}" ]] || die "the seed list must not be empty"
+for seed in $SEEDS; do [[ "$seed" =~ ^[0-9]+$ ]] || die "invalid seed: $seed"; done
+
+: "${SLURM_JOB_ID:?This script must run as a Slurm job}"
+: "${SLURM_SUBMIT_DIR:?SLURM_SUBMIT_DIR is not set}"
+: "${USER:?USER is not set}"
+
+readonly SUBMIT_DIR="$SLURM_SUBMIT_DIR"
+readonly DATA_SOURCE="$PROJECT_DIR/dataset"
+readonly WORK_DIR="/tmp/${USER}_${SLURM_JOB_ID}_table2"
+readonly DATA_DIR="$WORK_DIR/dataset"
+readonly ARCHIVE_DIR="$PROJECT_DIR/cluster_runs/timex_table2_${SLURM_JOB_ID}"
+ACTIVE_SEED_DIR=""
+ACTIVE_ARCHIVE_DIR=""
+
+require_file() { [[ -f "$1" ]] || die "required file not found: $1"; }
+require_dir() { [[ -d "$1" ]] || die "required directory not found: $1"; }
+
+sync_active_seed() {
+    [[ -n "$ACTIVE_SEED_DIR" && -n "$ACTIVE_ARCHIVE_DIR" ]] || return 0
+    mkdir -p "$ACTIVE_ARCHIVE_DIR/results" "$ACTIVE_ARCHIVE_DIR/models"
+    [[ ! -d "$ACTIVE_SEED_DIR/results" ]] || rsync -a "$ACTIVE_SEED_DIR/results/" "$ACTIVE_ARCHIVE_DIR/results/"
+    for dataset in seqcomb_mv lowvardetect; do
+        source_models="$ACTIVE_SEED_DIR/repo/experiments/$dataset/models"
+        if [[ -d "$source_models" ]]; then
+            mkdir -p "$ACTIVE_ARCHIVE_DIR/models/$dataset"
+            rsync -a "$source_models/" "$ACTIVE_ARCHIVE_DIR/models/$dataset/"
+        fi
+    done
+}
+
+clean_up() {
+    status=$?
+    trap - EXIT HUP INT TERM
+    set +e
+    sync_active_seed
+    sync_status=$?
+    [[ $status -ne 0 || $sync_status -eq 0 ]] || status=$sync_status
+    if [[ -d "$WORK_DIR" && "$WORK_DIR" == "/tmp/${USER}_${SLURM_JOB_ID}_table2" ]]; then
+        rm -rf -- "$WORK_DIR"
+    fi
+    echo "Cleanup finished with status $status"
+    exit "$status"
+}
+handle_signal() { echo "Received $1; preserving partial outputs" >&2; exit "$2"; }
+trap clean_up EXIT
+trap 'handle_signal SIGHUP 129' HUP
+trap 'handle_signal SIGINT 130' INT
+trap 'handle_signal SIGTERM 143' TERM
+
+require_file "$SUBMIT_DIR/run_table2.sh"
+require_file "$SUBMIT_DIR/pyproject.toml"
+require_file "$SUBMIT_DIR/.venv/bin/activate"
+require_file "$SUBMIT_DIR/txai/baselines/WinIT/winit/explainer/winitexplainers.py"
+require_dir "$DATA_SOURCE/SeqCombMV"
+require_dir "$DATA_SOURCE/LowVarDetect"
+command -v rsync >/dev/null 2>&1 || die "rsync is required"
+
+mkdir -p "$WORK_DIR" "$DATA_DIR" "$ARCHIVE_DIR"
+echo "Job $SLURM_JOB_ID on $(hostname); scratch: $WORK_DIR; archive: $ARCHIVE_DIR; seeds: $SEEDS"
+rsync -a "$DATA_SOURCE/SeqCombMV" "$DATA_DIR/"
+rsync -a "$DATA_SOURCE/LowVarDetect" "$DATA_DIR/"
+
+source "$SUBMIT_DIR/.venv/bin/activate"
+export UV_NO_SYNC=1
+export TIMEX_DATA_ROOT="$DATA_DIR"
+export MPLBACKEND=Agg
+
+for seed in $SEEDS; do
+    seed_root="$WORK_DIR/seed_$seed"
+    repo_dir="$seed_root/repo"
+    ACTIVE_SEED_DIR="$seed_root"
+    ACTIVE_ARCHIVE_DIR="$ARCHIVE_DIR/seed_$seed"
+    mkdir -p "$repo_dir" "$seed_root/results"
+    rsync -a --exclude='.git/' --exclude='.venv/' --exclude='dataset/' \
+        --exclude='logs/' --exclude='results/' --exclude='cluster_runs/' \
+        --exclude='experiments/seqcomb_mv/models/' \
+        --exclude='experiments/lowvardetect/models/' "$SUBMIT_DIR/" "$repo_dir/"
+    ln -s "$SUBMIT_DIR/.venv" "$repo_dir/.venv"
+    export PYTHONPATH="$repo_dir"
+    echo "=== Seed $seed starting at $(date) ==="
+    (cd "$repo_dir" && ./run_table2.sh --seed "$seed" --results-dir "$seed_root/results")
+    echo "=== Seed $seed completed at $(date) ==="
+    sync_active_seed
+    ACTIVE_SEED_DIR=""
+    ACTIVE_ARCHIVE_DIR=""
+done
+echo "Full Table 2 experiment completed: $ARCHIVE_DIR"

@@ -58,14 +58,16 @@ reproduction preserves the published ranking:
 | IG | 0.3183 | 0.3750 | -0.0567 |
 | Dynamask | 0.2940 | 0.2958 | -0.0018 |
 
-## Statistical Caveat
+## Statistical Reporting
 
-The paper describes its error bars as standard errors across five folds. The
-current evaluator instead concatenates per-sample metric values from every fold
-and computes `std / sqrt(n)` over that pooled collection. Consequently, the
-reported means and method rankings are safer to compare directly than the
-`+/-` values; the latter should not be used for formal significance claims
-without first aligning the aggregation procedures.
+The historical Table 1 run below predates fold-level reporting: its evaluator
+concatenated per-sample metric values from every fold and computed
+`std / sqrt(n)` over that pooled collection. Consequently, its means and method
+rankings are safer to compare directly than its `+/-` values. New evaluator
+runs retain pooled metrics for compatibility but report the primary uncertainty
+as the sample standard error (`ddof=1`) across the five fold means, matching the
+methodology stated in the paper. See [`experiments/TABLE2.md`](experiments/TABLE2.md)
+for the corrected Table 2 workflow.
 
 ## Sources
 

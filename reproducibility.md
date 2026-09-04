@@ -1,6 +1,12 @@
 # Reproducing Experiments
 This file gives instructions on how to reproduce the findings in the TimeX paper. These experiments will be organized by structure of the paper, so please reference those sections.
 
+Complete automated workflows are documented in
+[`experiments/TABLE1.md`](experiments/TABLE1.md) for the univariate experiments
+and [`experiments/TABLE2.md`](experiments/TABLE2.md) for the multivariate
+experiments. Those runners resolve data through `TIMEX_DATA_ROOT` and do not
+require editing checkpoint paths in source files.
+
 ## Training TimeX
 Scripts used to train TimeX models are included in `experiments/<dataset>/bc_model_ptype.py`. Within these scripts, you can change hyperparameter choices and see usage for setting up the model, training function, loss functions, and more. Before training, please replace the path to the trained time series predictor that you wish to explain. Then, run:
 ```

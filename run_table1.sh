@@ -5,7 +5,7 @@ repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repo_root"
 
 datasets="all"
-methods="ours,ig,dyna,winit"
+methods="ours,ig,dyna,winit,cortx,sgt+grad"
 stage="all"
 winit_epochs=1000
 seed=0
@@ -20,11 +20,11 @@ Reproduce the functional rows of Table 1 over all five published folds.
 
 Options:
   --datasets LIST       all, freqshape, or seqcomb_uv (comma-separated)
-  --methods LIST        ours,ig,dyna,winit (comma-separated)
+  --methods LIST        ours,ig,dyna,winit,cortx,sgt+grad (comma-separated)
   --stage STAGE         all, train, or evaluate
   --winit-epochs N      WinIT generator epochs (default: 1000)
   --seed N              Base random seed (default: 0)
-  --results-dir PATH    Log directory (default: results/table1)
+  --results-dir PATH    Logs, JSON, and summaries (default: results/table1)
   -h, --help            Show this help
 
 Examples:
@@ -32,8 +32,8 @@ Examples:
   ./run_table1.sh --stage evaluate --methods ours,ig,dyna
 
 Set TIMEX_DATA_ROOT to override the default dataset/ directory.
-CoRTX and SGT+Grad are not accepted because their committed scripts are
-incomplete one-fold research snapshots and cannot reproduce Table 1 as-is.
+CoRTX and SGT+Grad run through experiments/other_baselines/train_synth_baselines.py
+rather than their committed one-fold research snapshots.
 EOF
     exit "$code"
 }
@@ -64,21 +64,19 @@ if [[ "$datasets" == "all" ]]; then
     datasets="freqshape,seqcomb_uv"
 fi
 
-for method in cortx sgt sgt+grad; do
-    if contains "$methods" "$method"; then
-        echo "Cannot run $method reproducibly: its upstream Table 1 pipeline is incomplete." >&2
-        exit 2
-    fi
-done
-
 for method in ${methods//,/ }; do
     case "$method" in
-        ours|ig|dyna|winit) ;;
+        ours|ig|dyna|winit|cortx|sgt+grad) ;;
         *) echo "Unknown method: $method" >&2; usage 2 ;;
     esac
 done
 
 mkdir -p "$results_dir"
+
+all_exist() {
+    template="$1"
+    for split in 1 2 3 4 5; do [[ -e "${template//__SPLIT__/$split}" ]] || return 1; done
+}
 
 run_logged() {
     log_file="$1"
@@ -99,13 +97,31 @@ train_dataset() {
             ;;
         *) echo "Unknown dataset: $dataset" >&2; exit 2 ;;
     esac
+    model_dir="$experiment_dir/models"
+    mkdir -p "$model_dir"
 
-    run_logged "$results_dir/${dataset}_predictor_train.log" \
-        uv run python "$experiment_dir/train_transformer.py" --seed "$seed"
+    if all_exist "$model_dir/Scomb_transformer_split=__SPLIT__.pt"; then
+        echo ">>> $dataset predictor (checkpoints already complete)"
+    else
+        run_logged "$results_dir/${dataset}_predictor_train.log" \
+            uv run python "$experiment_dir/train_transformer.py" --seed "$seed"
+    fi
 
-    if contains "$methods" ours; then
+    if contains "$methods" ours && ! all_exist "$model_dir/bc_full_split=__SPLIT__.pt"; then
         run_logged "$results_dir/${dataset}_timex_train.log" \
             uv run python "$experiment_dir/bc_model_ptype.py" --seed "$seed"
+    fi
+
+    if contains "$methods" cortx && ! all_exist "$model_dir/cortx_split=__SPLIT__.pt"; then
+        run_logged "$results_dir/${dataset}_cortx_train.log" \
+            uv run python experiments/other_baselines/train_synth_baselines.py \
+                --dataset "$dataset" --method cortx --seed "$seed"
+    fi
+
+    if contains "$methods" sgt+grad && ! all_exist "$model_dir/sgt_split=__SPLIT__.pt"; then
+        run_logged "$results_dir/${dataset}_sgt_train.log" \
+            uv run python experiments/other_baselines/train_synth_baselines.py \
+                --dataset "$dataset" --method sgt --seed "$seed"
     fi
 
     if contains "$methods" winit; then
@@ -139,25 +155,34 @@ evaluate_dataset() {
     esac
 
     for method in ${methods//,/ }; do
-        if [[ "$method" == "ours" ]]; then
-            model_path="$model_dir/bc_full_split=1.pt"
-        else
-            model_path="$model_dir/Scomb_transformer_split=1.pt"
-        fi
+        case "$method" in
+            ours) model_path="$model_dir/bc_full_split=1.pt" ;;
+            cortx) model_path="$model_dir/cortx_split=1.pt" ;;
+            sgt+grad) model_path="$model_dir/sgt_split=1.pt" ;;
+            *) model_path="$model_dir/Scomb_transformer_split=1.pt" ;;
+        esac
 
-        if [[ ! -f "$model_path" ]]; then
-            echo "Missing checkpoint: $model_path" >&2
+        if ! all_exist "${model_path/split=1/split=__SPLIT__}"; then
+            echo "Missing checkpoints for $dataset $method: $model_path" >&2
             echo "Run this script with --stage train first." >&2
             exit 1
         fi
 
-        run_logged "$results_dir/${dataset}_${method}_evaluation.log" \
+        eval_extra=()
+        if [[ -n "${TIMEX_MAX_SAMPLES:-}" ]]; then
+            eval_extra+=(--max-samples "$TIMEX_MAX_SAMPLES")
+        fi
+
+        run_logged "$results_dir/${dataset}_${method//+/_}_evaluation.log" \
             uv run python experiments/evaluation/saliency_exp_synth.py \
                 --dataset "$eval_name" \
                 --exp_method "$method" \
                 --split_no -1 \
                 --model_path "$model_path" \
-                --seed "$seed"
+                --seed "$seed" \
+                --results-json "$results_dir/${dataset}_${method//+/_}_results.json" \
+                --no-progress \
+                "${eval_extra[@]}"
     done
 }
 
@@ -175,5 +200,9 @@ for dataset in ${datasets//,/ }; do
     fi
 done
 
+if [[ "$stage" == "all" || "$stage" == "evaluate" ]]; then
+    uv run python experiments/evaluation/summarize_synth.py --table 1 "$results_dir"
+fi
+
 echo
-echo "Table 1 runs completed. Logs: $results_dir"
+echo "Table 1 runs completed. Outputs: $results_dir"

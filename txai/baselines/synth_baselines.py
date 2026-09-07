@@ -1,4 +1,4 @@
-"""Shared implementations for the multivariate Table 2 baselines."""
+"""Shared implementations for the CoRTX and SGT + Grad synthetic baselines."""
 
 import torch
 import torch.nn.functional as F
@@ -7,10 +7,24 @@ from txai.models.encoders.transformer_simple import TransformerMVTS
 from txai.models.mask_generators.maskgen import MaskGenerator
 
 
+# Architectures of the reference predictors these baselines stand in for; `d_inp` and
+# `max_len` are read off the data instead, since FreqShape is T=50 and the rest T=200.
 DATASET_CONFIGS = {
+    "freqshape": dict(
+        n_classes=4,
+        trans_dim_feedforward=16,
+        trans_dropout=0.1,
+        d_pe=16,
+    ),
+    "scs_better": dict(
+        n_classes=4,
+        nlayers=2,
+        nhead=1,
+        trans_dim_feedforward=64,
+        trans_dropout=0.25,
+        d_pe=16,
+    ),
     "seqcomb_mv": dict(
-        d_inp=4,
-        max_len=200,
         n_classes=4,
         trans_dim_feedforward=128,
         nlayers=2,
@@ -18,8 +32,6 @@ DATASET_CONFIGS = {
         d_pe=16,
     ),
     "lowvardetect": dict(
-        d_inp=2,
-        max_len=200,
         n_classes=4,
         trans_dim_feedforward=32,
         nlayers=1,
@@ -31,20 +43,38 @@ DATASET_CONFIGS = {
 }
 
 
-def make_transformer(dataset):
-    """Construct the paper's transformer architecture for a Table 2 dataset."""
-    return TransformerMVTS(**DATASET_CONFIGS[dataset])
+def make_transformer(dataset, d_inp, max_len):
+    """Construct the paper's transformer architecture for a synthetic dataset."""
+    return TransformerMVTS(d_inp=d_inp, max_len=max_len, **DATASET_CONFIGS[dataset])
 
 
-def make_cortx_decoder(dataset):
-    """Construct a continuous multivariate CoRTX mask decoder."""
-    config = DATASET_CONFIGS[dataset]
+def make_cortx_decoder(dataset, d_inp, max_len):
+    """Construct a continuous CoRTX mask decoder over the encoder's sequence embeddings."""
     return MaskGenerator(
-        d_z=config["d_inp"] + config["d_pe"],
-        max_len=config["max_len"],
+        d_z=d_inp + DATASET_CONFIGS[dataset]["d_pe"],
+        max_len=max_len,
         tau=1.0,
         use_ste=False,
     )
+
+
+def cortx_mask(decoder, z_seq, src, times):
+    """Return the CoRTX decoder's continuous mask time-first, ``(T, B, d)``.
+
+    ``MaskGenerator`` emits batch-first masks for univariate inputs and time-first masks
+    for multivariate ones; every caller here wants time-first.
+
+    Args:
+        decoder: The ``MaskGenerator`` built by :func:`make_cortx_decoder`.
+        z_seq: Encoder sequence embeddings, (T, B, d_z).
+        src: Input series, (T, B, d).
+        times: Timestamps, (T, B).
+
+    Returns:
+        The continuous mask, (T, B, d).
+    """
+    mask, _ = decoder(z_seq, src, times)
+    return mask.transpose(0, 1) if decoder.d_inp == 1 else mask
 
 
 def symmetric_infonce(z1, z2, temperature=0.7):

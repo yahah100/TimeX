@@ -51,10 +51,12 @@ sbatch sj_timex --seed 42          # Table 1 on Slurm
 sbatch sj_timex_table2 --seeds "42 43"
 ```
 
-`--stage train|evaluate|all` splits the pipeline. Table 1 refuses `cortx` and `sgt+grad`
-because the committed scripts for those are one-fold research snapshots; Table 2 runs them
-through `experiments/other_baselines/train_table2.py` plus reimplementations in
-`txai/baselines/table2.py` (in-batch InfoNCE for CoRTX, absolute input gradients for SGT).
+`--stage train|evaluate|all` splits the pipeline. Both tables run the same six methods.
+The committed CoRTX and SGT scripts in `experiments/other_baselines/` are one-fold research
+snapshots and are not used; `cortx` and `sgt+grad` instead go through
+`experiments/other_baselines/train_synth_baselines.py` plus reimplementations in
+`txai/baselines/synth_baselines.py` (in-batch InfoNCE for CoRTX, absolute input gradients
+for SGT).
 
 `experiments/TABLE1.md` and `experiments/TABLE2.md` document the workflows in detail;
 `results_reproduction.md` records the results already obtained and where they diverge from the paper.
@@ -77,8 +79,8 @@ Everything is five-fold; fold `i` (1..5) runs under seed `base_seed + i - 1` via
 
 Pass the TimeX checkpoint for `--exp_method ours`; pass the *predictor* checkpoint for every
 other method. Results JSON (`--results-json`) carries `schema_version`, per-fold records,
-`pooled`, and `cross_validation`; `summarize_table2.py` turns a directory of those into
-CSV/Markdown next to the published numbers.
+`pooled`, and `cross_validation`; `summarize_synth.py --table 1|2` turns a directory of
+those into CSV/Markdown next to the published numbers.
 
 ### Smoke tests
 
@@ -127,7 +129,12 @@ and the resulting explanation embedding is pushed to mirror the reference model'
 - `saliency_exp_synth.py` has its own `get_model(args, X)` that **re-declares the predictor
   architecture per dataset**. If you change transformer hyperparameters in a
   `train_transformer.py`, mirror them there or `load_state_dict` will fail (or silently
-  mismatch shapes). The same duplication exists in `txai/baselines/table2.py::make_transformer`.
+  mismatch shapes). The same duplication exists in
+  `txai/baselines/synth_baselines.py::DATASET_CONFIGS`, which the CoRTX and SGT baselines
+  build their transformers from.
+- `MaskGenerator.forward` returns the mask **batch-first for univariate** inputs and
+  time-first for multivariate ones. Route it through
+  `txai/baselines/synth_baselines.py::cortx_mask`, which normalizes to time-first.
 - `TimeXModel.get_saliency_explanation` returns a dict; the attribution is `out['mask_in']`.
   The full `forward` returns a much larger dict used only during training.
 - The per-dataset `bc_model_ptype.py` scripts are near-copies with hard-coded hyperparameters.

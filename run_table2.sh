@@ -104,11 +104,11 @@ for dataset in ${datasets//,/ }; do
         fi
         if contains "$methods" cortx && ! all_exist "$models/cortx_split=__SPLIT__.pt"; then
             run_logged "$results_dir/${dataset}_cortx_train.log" "$dataset CoRTX" \
-                uv run python experiments/other_baselines/train_table2.py --dataset "$dataset" --method cortx --seed "$seed"
+                uv run python experiments/other_baselines/train_synth_baselines.py --dataset "$dataset" --method cortx --seed "$seed"
         fi
         if contains "$methods" sgt+grad && ! all_exist "$models/sgt_split=__SPLIT__.pt"; then
             run_logged "$results_dir/${dataset}_sgt_train.log" "$dataset SGT + Grad" \
-                uv run python experiments/other_baselines/train_table2.py --dataset "$dataset" --method sgt --seed "$seed"
+                uv run python experiments/other_baselines/train_synth_baselines.py --dataset "$dataset" --method sgt --seed "$seed"
         fi
     fi
 
@@ -139,6 +139,6 @@ for dataset in ${datasets//,/ }; do
 done
 
 if [[ "$stage" == all || "$stage" == evaluate ]]; then
-    uv run python experiments/evaluation/summarize_table2.py "$results_dir"
+    uv run python experiments/evaluation/summarize_synth.py --table 2 "$results_dir"
 fi
 echo "Table 2 workflow completed. Outputs: $results_dir"

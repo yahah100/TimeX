@@ -18,8 +18,9 @@ from txai.synth_data.simple_spike import SpikeTrainDataset
 from txai.utils.data.preprocess import process_Epilepsy, process_PAM
 from txai.utils.constants import DATA_ROOT
 from txai.utils.reproducibility import seed_everything
-from txai.baselines.table2 import (
+from txai.baselines.synth_baselines import (
     absolute_input_gradients,
+    cortx_mask,
     make_cortx_decoder,
     make_transformer,
 )
@@ -469,8 +470,8 @@ def main(args):
 
     elif args.exp_method == "cortx":
         checkpoint = torch.load(args.model_path, map_location=device)
-        model = make_transformer(Dname).to(device)
-        decoder = make_cortx_decoder(Dname).to(device)
+        model = make_transformer(Dname, d, T).to(device)
+        decoder = make_cortx_decoder(Dname, d, T).to(device)
         model.load_state_dict(checkpoint["encoder"])
         decoder.load_state_dict(checkpoint["decoder"])
         model.eval()
@@ -481,11 +482,11 @@ def main(args):
             batch_times = times[:, start : start + 64]
             with torch.no_grad():
                 z_seq = model.embed(batch_x, batch_times, aggregate=False)
-                mask, _ = decoder(z_seq, batch_x, batch_times)
+                mask = cortx_mask(decoder, z_seq, batch_x, batch_times)
             generated_exps[:, start : start + 64] = mask
 
     elif args.exp_method == "sgt+grad":
-        model = make_transformer(Dname).to(device)
+        model = make_transformer(Dname, d, T).to(device)
         model.load_state_dict(torch.load(args.model_path, map_location=device))
         model.eval()
         generated_exps = torch.zeros_like(X)

@@ -23,7 +23,7 @@ usage() {
 Usage: sbatch sj_timex [--seed N | --seeds "N ..."]
 
 Run the complete Table 1 experiment on a Slurm GPU node. Each base seed runs
-both datasets, all five folds, and the ours, ig, dyna, and winit methods.
+both datasets, all five folds, and all six explanation methods.
 
 Options:
   --seed N          Run one base seed (default: 42)
@@ -194,7 +194,7 @@ for seed in ${SEEDS}; do
         cd "${repo_dir}"
         ./run_table1.sh \
             --datasets all \
-            --methods ours,ig,dyna,winit \
+            --methods ours,ig,dyna,winit,cortx,sgt+grad \
             --stage all \
             --seed "${seed}" \
             --results-dir "${seed_root}/results"

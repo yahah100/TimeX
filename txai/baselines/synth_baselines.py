@@ -99,13 +99,41 @@ def mask_bottom_features(x, scores, fraction=0.9):
     """Replace each sample's lowest-scoring fraction with uniform noise."""
     if x.shape != scores.shape:
         raise ValueError("input and score shapes must match")
-    masked = x.detach().clone()
+    masked = x.detach().clone().contiguous()
     flat = masked.flatten(1)
     flat_scores = scores.flatten(1)
-    count = max(1, int(flat.shape[1] * fraction))
+    if not 0 <= fraction <= 1:
+        raise ValueError("mask fraction must be between zero and one")
+    count = int(flat.shape[1] * fraction)
     indices = flat_scores.topk(count, dim=1, largest=False).indices
     mins = flat.min(dim=1, keepdim=True).values
     spans = flat.max(dim=1, keepdim=True).values - mins
     replacements = mins + torch.rand_like(indices, dtype=flat.dtype) * spans
     flat.scatter_(1, indices, replacements)
     return masked
+
+
+def sgt_objective(logits, masked_logits, targets):
+    """Released Poly1 + KL(P(original) || P(masked)), gradients through both views."""
+    from txai.utils.predictors.loss import Poly1CrossEntropyLoss
+
+    classification = Poly1CrossEntropyLoss(
+        num_classes=logits.shape[-1], epsilon=1.0, reduction="mean"
+    )(logits, targets)
+    consistency = F.kl_div(
+        F.log_softmax(masked_logits, dim=1),
+        F.softmax(logits, dim=1),
+        reduction="batchmean",
+    )
+    return classification, consistency
+
+
+def checked_step(loss, optimizer, parameters):
+    """Fail explicitly before applying a nonfinite update."""
+    if not torch.isfinite(loss):
+        raise FloatingPointError("Nonfinite baseline loss")
+    optimizer.zero_grad()
+    loss.backward()
+    if any(p.grad is not None and not torch.isfinite(p.grad).all() for p in parameters):
+        raise FloatingPointError("Nonfinite baseline gradient")
+    optimizer.step()

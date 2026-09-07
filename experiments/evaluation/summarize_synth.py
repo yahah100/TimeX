@@ -55,54 +55,132 @@ FIELDNAMES = (
     "metric",
     "reproduced_mean",
     "fold_standard_error",
+    "historical_pooled_standard_error",
     "published",
     "difference",
+    "within_tolerance",
+    "protocol",
+    "base_seed",
+    "n_folds",
+    "completion_status",
+    "provenance_status",
+    "row_status",
 )
 
 
-def main(results_dir, table):
+def comparison_rows(results_dir, table):
+    """Include every published row; do not label partial or untraceable results matched."""
     published = PUBLISHED_BY_TABLE[table]
-    rows = []
+    records = {}
     for path in sorted(results_dir.glob("*_results.json")):
         record = json.loads(path.read_text())
         dataset = DATASET_ALIASES.get(record["dataset"], record["dataset"])
-        method = record["method"]
-        if dataset not in published or method not in published[dataset]:
-            continue
-        for index, metric in enumerate(METRICS):
-            reproduced = record["cross_validation"]["metrics"][metric]
-            paper = published[dataset][method][index]
-            rows.append(
-                {
-                    "dataset": dataset,
-                    "method": method,
-                    "metric": metric.upper(),
-                    "reproduced_mean": reproduced["mean"],
-                    "fold_standard_error": reproduced["standard_error"],
-                    "published": paper,
-                    "difference": reproduced["mean"] - paper,
-                }
+        key = (dataset, record["method"])
+        if key in records:
+            raise ValueError(
+                f"Duplicate result identity {key}; summarize protocols/seeds separately"
             )
-    csv_path = results_dir / f"table{table}_summary.csv"
-    with csv_path.open("w", newline="") as handle:
+        records[key] = record
+    rows = []
+    for dataset, methods in published.items():
+        for method, reference in methods.items():
+            record = records.get((dataset, method), {})
+            cv = record.get("cross_validation", {})
+            metrics = cv.get("metrics", {})
+            completion = record.get(
+                "completion_status", "historical_unverified" if record else "missing"
+            )
+            provenance = record.get("provenance_status", "unknown")
+            differences = [
+                metrics[k]["mean"] - reference[i]
+                for i, k in enumerate(METRICS)
+                if k in metrics
+            ]
+            qualified = all(
+                q.get("qualified") and q.get("validation_macro_f1", 0) >= 0.95
+                for q in record.get("predictor_quality", [])
+            )
+            traceable = (
+                record.get("protocol") == "repaired-v1"
+                and len(record.get("provenance", [])) == 5
+                and len(record.get("predictor_quality", [])) == 5
+                and qualified
+            )
+            if provenance.startswith("unresolved"):
+                status = "unresolved provenance"
+            elif completion != "complete" or cv.get("n_folds") != 5 or not traceable:
+                status = (
+                    completion
+                    if not traceable or completion != "complete"
+                    else "partial"
+                )
+                if status == "complete":
+                    status = "unverified"
+            elif len(differences) == 3 and all(abs(d) <= 0.05 for d in differences):
+                status = "matched"
+            else:
+                status = "outside tolerance"
+            for index, metric in enumerate(METRICS):
+                reproduced = metrics.get(metric, {})
+                mean = reproduced.get("mean")
+                difference = mean - reference[index] if mean is not None else None
+                rows.append(
+                    dict(
+                        dataset=dataset,
+                        method=method,
+                        metric=metric.upper(),
+                        reproduced_mean=mean,
+                        fold_standard_error=reproduced.get("standard_error"),
+                        historical_pooled_standard_error=record.get("pooled", {})
+                        .get("historical_standard_error", {})
+                        .get(metric),
+                        published=reference[index],
+                        difference=difference,
+                        within_tolerance=abs(difference) <= 0.05
+                        if difference is not None
+                        else None,
+                        protocol=record.get(
+                            "protocol", "historical" if record else "pending"
+                        ),
+                        base_seed=record.get("base_seed"),
+                        n_folds=cv.get("n_folds", 0),
+                        completion_status=completion,
+                        provenance_status=provenance,
+                        row_status=status,
+                    )
+                )
+    return rows
+
+
+def main(results_dir, table):
+    rows = comparison_rows(results_dir, table)
+    results_dir.mkdir(parents=True, exist_ok=True)
+    with (results_dir / f"table{table}_summary.csv").open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=FIELDNAMES)
         writer.writeheader()
         writer.writerows(rows)
     md = [
         f"# Table {table} reproduction summary",
         "",
-        "| Dataset | Method | Metric | Reproduced mean ± fold SE | Published | Difference |",
-        "|---|---|---:|---:|---:|---:|",
+        "Primary uncertainty is SE across fold means. Historical pooled SE is labelled separately in CSV.",
+        "",
+        "| Dataset | Method | Metric | Mean ± fold SE | Published | Difference | Protocol / seed | Folds | Row status |",
+        "|---|---|---|---:|---:|---:|---|---:|---|",
     ]
     for row in rows:
-        se = row["fold_standard_error"]
-        reproduced = (
-            f'{row["reproduced_mean"]:.4f} ± {se:.4f}'
-            if se is not None
-            else f'{row["reproduced_mean"]:.4f} ± n/a'
+        mean, se, delta = (
+            row["reproduced_mean"],
+            row["fold_standard_error"],
+            row["difference"],
         )
+        value = (
+            "pending"
+            if mean is None
+            else f"{mean:.4f} ± " + (f"{se:.4f}" if se is not None else "n/a")
+        )
+        difference = "—" if delta is None else f"{delta:+.4f}"
         md.append(
-            f'| {row["dataset"]} | {row["method"]} | {row["metric"]} | {reproduced} | {row["published"]:.4f} | {row["difference"]:+.4f} |'
+            f'| {row["dataset"]} | {row["method"]} | {row["metric"]} | {value} | {row["published"]:.4f} | {difference} | {row["protocol"]} / {row["base_seed"]} | {row["n_folds"]} | {row["row_status"]} |'
         )
     (results_dir / f"table{table}_summary.md").write_text("\n".join(md) + "\n")
 

@@ -141,6 +141,8 @@ def main(args):
             transformer_args=targs,
             ablation_parameters=abl_params,
             loss_weight_dict=loss_weight_dict,
+            connectivity_version=args.connectivity_version,
+            training_version=args.training_version,
             masktoken_stats=(mu, std),
             tau=1.0,
         )
@@ -240,6 +242,14 @@ if __name__ == "__main__":
         type=float,
         default=1.0,
         help="lambda between label alignment and consistency loss",
+    )
+    parser.add_argument(
+        "--connectivity-version",
+        choices=("legacy", "temporal-l1-v1"),
+        default="temporal-l1-v1",
+    )
+    parser.add_argument(
+        "--training-version", choices=("legacy", "repaired-v1"), default="repaired-v1"
     )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--split-no", type=int, choices=range(1, 6))

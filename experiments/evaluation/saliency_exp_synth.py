@@ -18,11 +18,13 @@ from txai.synth_data.simple_spike import SpikeTrainDataset
 from txai.utils.data.preprocess import process_Epilepsy, process_PAM
 from txai.utils.constants import DATA_ROOT
 from txai.utils.reproducibility import seed_everything
+from txai.utils.predictors import eval_mvts_transformer
 from txai.baselines.synth_baselines import (
     absolute_input_gradients,
     cortx_mask,
     make_cortx_decoder,
     make_transformer,
+    mask_bottom_features,
 )
 
 try:
@@ -489,12 +491,15 @@ def main(args):
         model = make_transformer(Dname, d, T).to(device)
         model.load_state_dict(torch.load(args.model_path, map_location=device))
         model.eval()
+        args.classifier_test_macro_f1 = float(eval_mvts_transformer(test, model))
         generated_exps = torch.zeros_like(X)
         for start in range(0, B, 64):
             batch_x = X[:, start : start + 64].transpose(0, 1)
             batch_times = times[:, start : start + 64].transpose(0, 1)
             batch_y = y[start : start + 64]
             grads = absolute_input_gradients(model, batch_x, batch_times, batch_y)
+            if args.sgt_masked_input_control:
+                grads = mask_bottom_features(batch_x, grads, fraction=0.9)
             generated_exps[:, start : start + 64] = grads.transpose(0, 1)
 
     elif args.exp_method == "winit":
@@ -639,6 +644,7 @@ if __name__ == "__main__":
         "--max-samples", type=int, help="limit test samples for smoke testing"
     )
 
+    parser.add_argument("--sgt-masked-input-control", action="store_true")
     args = parser.parse_args()
     if args.split_no == -1:
         # eval results on all splits
@@ -657,6 +663,9 @@ if __name__ == "__main__":
             fold_records.append(
                 {
                     "split": split,
+                    "classifier_test_macro_f1": getattr(
+                        args, "classifier_test_macro_f1", None
+                    ),
                     "n_samples": len(next(iter(split_results.values()))),
                     "metrics": {k: float(np.mean(v)) for k, v in split_results.items()},
                 }
@@ -687,6 +696,9 @@ if __name__ == "__main__":
             "folds": fold_records,
             "pooled": {
                 "metrics": {k: float(np.mean(v)) for k, v in results.items()},
+                "historical_standard_error": {
+                    k: float(np.std(v) / np.sqrt(len(v))) for k, v in results.items()
+                },
                 "n_samples": len(next(iter(results.values()))),
             },
             "cross_validation": {
@@ -715,12 +727,19 @@ if __name__ == "__main__":
             "folds": [
                 {
                     "split": args.split_no,
+                    "classifier_test_macro_f1": getattr(
+                        args, "classifier_test_macro_f1", None
+                    ),
                     "n_samples": len(next(iter(split_results.values()))),
                     "metrics": metrics,
                 }
             ],
             "pooled": {
                 "metrics": metrics,
+                "historical_standard_error": {
+                    k: float(np.std(v) / np.sqrt(len(v)))
+                    for k, v in split_results.items()
+                },
                 "n_samples": len(next(iter(split_results.values()))),
             },
             "cross_validation": {
@@ -730,6 +749,13 @@ if __name__ == "__main__":
                 },
             },
         }
+    output["completion_status"] = (
+        "diagnostic"
+        if args.max_samples is not None or args.sgt_masked_input_control
+        else "unverified"
+    )
+    if any(not np.isfinite(v) for f in output["folds"] for v in f["metrics"].values()):
+        raise FloatingPointError("Nonfinite attribution metric")
     if args.results_json:
         args.results_json.parent.mkdir(parents=True, exist_ok=True)
         args.results_json.write_text(json.dumps(output, indent=2) + "\n")

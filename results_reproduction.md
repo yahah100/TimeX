@@ -1,25 +1,38 @@
 # TimeX Paper Reproduction: Results & Interpretation
 
-This document provides a comprehensive report on reproducing the synthetic benchmark results from the TimeX paper (**"TimeX: Saliency-Based Explanations for Time Series Classification"**, [arXiv:2306.02109v2](2306.02109v2.pdf)).
+This document provides a comprehensive report on reproducing the synthetic benchmark results from the TimeX paper (**"Encoding Time-Series Explanations through Self-Supervised Model Behavior Consistency"**, [arXiv:2306.02109v2](2306.02109v2.pdf)).
 
 It covers both **Table 1** (Univariate Attribution) and **Table 2** (Multivariate Attribution), evaluates reference predictor quality (**Table 15**), checks explanation overlap via IoU (**Table 10**), and provides an in-depth interpretation of the empirical findings.
 
 ---
 
-## 1. Executive Summary
+## 1. Current status
 
-- **Primary Finding Supported**: Across both univariate and multivariate settings, TimeX consistently achieves the strongest or near-strongest explanation metrics among evaluated methods, confirming the paper's central claim that TimeX excels at identifying essential temporal patterns.
-- **Univariate Datasets (Table 1)**:
-  - **FreqShapes**: Reproduced exceptionally well. TimeX achieves **0.8401–0.8713 AUPRC** (paper: 0.8324) and **0.7440–0.7898 AUP** (paper: 0.7219), outperforming all baselines.
-  - **SeqComb-UV**: TimeX remains #1 on AUPRC (0.6831), AUP (0.9022), and IoU (0.4943). A slight ranking swap occurs on AUR (IG scored 0.3415 vs TimeX 0.2989; paper had TimeX at 0.3380 and IG at 0.2868).
-  - **CoRTX and SGT + Grad** were added at base seed 42 against the same predictors as the other rows. Both land well below the published figures (CoRTX -0.14/-0.15 AUPRC, SGT -0.24/-0.13), for the reimplementation reasons in §5.3. They do not disturb TimeX's #1 rank on any metric.
-- **Multivariate Datasets (Table 2)**:
-  - **LowVar**: Replicated with high precision. TimeX ranks #1 on all three attribution metrics: **AUPRC (0.8371)**, **AUP (0.5070)**, and **AUR (0.9031)**, matching the published AUR (0.9004) and leading baselines.
-  - **SeqComb-MV**: TimeX preserves #1 rank on AUP (0.7308) and AUPRC (0.3735), but shows an absolute drop against the paper (0.6878 AUPRC). Investigation of per-split logs reveals that predictor convergence issues on splits 3 and 4 (F1 ~0.75–0.78 vs ~0.96–0.98 on other splits) caused downstream degradation in attribution quality.
-- **Baselines**:
-  - **WinIT and Dynamask**: Replicate published results with remarkable fidelity across all benchmarks (often within ±0.01 to ±0.03 of paper metrics).
-  - **Integrated Gradients (IG)**: Strong baseline performance closely matching paper trends.
-  - **CoRTX and SGT + Grad**: Replicated on all four synthetic datasets using updated implementations (in-batch InfoNCE for CoRTX due to obsolete `PyGCL`; model gradients for SGT). CoRTX matches SeqComb-MV almost exactly (0.3623 vs 0.3629 AUPRC) but falls short everywhere else; SGT reproduces SeqComb-UV's AUP above the paper (0.8453 vs 0.7828) yet collapses on FreqShapes.
+The tables below preserve historical measurements. The **repaired Table 2 GPU
+run has not been executed**; the user will submit the jobs. Historical numerical
+agreement is not acceptance under the new provenance and validation gates.
+Table 1 measurements are retained for reference and were not rerun in this repair.
+
+The implementation repairs temporal connectivity, frozen-reference dropout,
+clipping order, omitted checkpoint loss weights, predictor quality gates, and
+SGT's loss/gradient flow. The runner now validates artifact and upstream hashes,
+isolates protocols/seeds/folds, preserves failed attempts and supports archived
+resume. See [the runnable workflow](experiments/TABLE2.md).
+
+Focused CPU checks cover numerical invariances, gradients, actual reduced
+training loops, checkpoint compatibility, predictor retries and runner resume
+semantics. [Reloaded checkpoint evidence](experiments/table2_cpu_evidence.json)
+confirms SeqComb-MV validation macro-F1 of 0.78716346/0.86871410 for folds 3/4.
+LowVar fold 1 has 64.0584% of training values outside the sigmoid decoder's range,
+with a bounded-reconstruction MSE lower bound of 0.48343837. CoRTX's multivariate
+recipe remains unresolved. The earlier near-constant-mask claim is withdrawn:
+the inspected output is heavily saturated with standard deviation 0.424000.
+
+SGT's longer 1000/120-epoch budget and validation checkpoint selection are
+explicit convergence repairs. CoRTX reconstruction and ten-epoch SGT already
+appear in the author snapshot; they were not newly invented by the previous
+runner. [Deviation notes](table2_deviations.md) separate confirmed defects,
+protocol changes, hypotheses and unresolved provenance.
 
 ---
 
@@ -34,7 +47,7 @@ In explainability benchmarks, the quality of attribution maps depends fundamenta
 | **LowVar** | Multivariate | **0.9774** | 0.9748 ± 0.0056 | +0.0026 | Fully aligned |
 | **SeqComb-MV** | Multivariate | **0.8866** | 0.9765 ± 0.0024 | -0.0899 | Discrepancy on folds 3 & 4 |
 
-> **Key Predictor Insight**: The LowVar and FreqShapes predictors match or exceed the paper's target performance across all folds. SeqComb-MV trained successfully on splits 1, 2, and 5 (F1: `0.9539`, `0.9841`, `0.9639`), but underperformed on splits 3 and 4 (F1: `0.7787`, `0.7524`), which explains much of the attribution gap on that dataset.
+> **Key Predictor Insight**: The LowVar and FreqShapes predictors match or exceed the paper's target performance across all folds. SeqComb-MV trained successfully on splits 1, 2, and 5 (F1: `0.9539`, `0.9841`, `0.9639`), but underperformed on splits 3 and 4 (F1: `0.7787`, `0.7524`), which may contribute to the attribution gap; the causal effect awaits controlled pilots.
 
 ---
 
@@ -86,9 +99,31 @@ The paper reports no IoU for the remaining methods; the reproduction measures Wi
 
 ---
 
-## 4. Table 2: Multivariate Synthetic Attribution
+## 4. Table 2: historical comparison and repaired-run status
 
-Metrics are reported as `Reproduction (mean ± fold SE) / Paper (Difference)`. All 6 methods evaluated across 5 folds:
+The following numbers are **historical**, from job 21846132 at seed 42, and use
+`Historical mean ± fold SE / Paper (Difference)`. All three differences are
+reported for each row. They are not repaired estimates.
+
+| Dataset | Method | Historical all-three differences ≤0.05? | Repaired status |
+|---|---|---|---|
+| SeqComb-MV | TimeX | No | Pending GPU; 0/5 repaired folds |
+| SeqComb-MV | IG | No | Pending GPU; 0/5 repaired folds |
+| SeqComb-MV | Dynamask | Yes | Pending GPU; failed historical predictor gate |
+| SeqComb-MV | WinIT | No | Pending GPU; 0/5 repaired folds |
+| SeqComb-MV | SGT + Grad | No | Pending GPU; objective/budget repair |
+| SeqComb-MV | CoRTX | Yes | Unresolved multivariate provenance; GPU pending |
+| LowVar | TimeX | Yes | Pending GPU; 0/5 repaired folds |
+| LowVar | IG | Yes | Pending GPU; 0/5 repaired folds |
+| LowVar | Dynamask | Yes | Pending GPU; 0/5 repaired folds |
+| LowVar | WinIT | Yes | Pending GPU; 0/5 repaired folds |
+| LowVar | SGT + Grad | No | Pending GPU; objective/budget repair |
+| LowVar | CoRTX | No | Unresolved multivariate provenance; GPU pending |
+
+Acceptance requires five complete, traceable repaired folds, validation-qualified
+predictors, supported provenance, and **each** AUPRC/AUP/AUR difference ≤0.05.
+The runner generates a complete twelve-row CSV/Markdown comparison with those
+statuses after every run, including failed or partially completed runs.
 
 ### LowVar (Multivariate)
 
@@ -114,43 +149,35 @@ Metrics are reported as `Reproduction (mean ± fold SE) / Paper (Difference)`. A
 
 ---
 
-## 5. In-Depth Interpretation of the Results
+## 5. Interpretation and uncertainty
 
-### 5.1 Why TimeX Consistently Outperforms Baselines
-1. **Continuous-to-Discrete Mask Formulation**:
-   TimeX uses a straight-through estimator (STE) and regularized mask generator that encourages contiguous, smooth temporal segment selection. In synthetic benchmarks where signals have defined intervals (e.g. frequencies in FreqShapes, specific trend combinations in SeqComb, or quiet periods in LowVar), point-wise gradient methods (like IG) produce noisy attributions. TimeX's temporal coherence yields substantially higher **AUP** (Area Under Precision) and **IoU**.
-2. **Robustness on High-Signal Tasks**:
-   On LowVar and FreqShapes, TimeX matches or exceeds published figures. Its LowVar AUR of **0.9031** confirms its ability to cleanly avoid attributing false-positive noise in low-variance channels.
+The historical tables do not isolate the causes of differences. SeqComb-MV
+predictor failures are confirmed, but TimeX's healthy folds also miss recall.
+Broken temporal connectivity, active frozen-reference dropout and ineffective
+clipping are additional demonstrated implementation defects. Their numerical
+impact remains to be separated in the fixed-hyperparameter pilots.
 
-### 5.2 Analysis of the SeqComb-MV Attribution Gap
-While TimeX is still the #1 method on SeqComb-MV (AUP 0.7308, AUPRC 0.3735), there is an absolute drop relative to the paper (0.6878 AUPRC):
-- **Predictor Dependence**: An explainer can only explain what the model learned. As shown in the per-split logs:
-  - Split 1: Predictor F1 = `0.9539` $\rightarrow$ TimeX AUP = `0.8370` (paper was `0.8326`) and AUPRC = `0.4604`.
-  - Split 5: Predictor F1 = `0.9639` $\rightarrow$ TimeX AUP = `0.8110` and AUPRC = `0.4465`.
-  - Split 3: Predictor F1 dropped to `0.7787` $\rightarrow$ TimeX AUP dropped to `0.6196` and AUPRC to `0.2812`.
-  - Split 4: Predictor F1 dropped to `0.7524` $\rightarrow$ TimeX AUP dropped to `0.7027` and AUPRC to `0.3758`.
-- Folds 3 and 4 experienced optimization plateaus in transformer predictor training (best validation AUCs were 0.7872 and 0.8687 vs 1.0000 on others). When the classifier has not fully isolated the signal combination, the saliency map necessarily dilutes.
+Baseline numerical agreement must be assessed across all three metrics. For
+example, SeqComb-MV WinIT is close in AUPRC but misses AUP by −0.1523 and AUR by
++0.0545. Dynamask and WinIT both use the predictor and are affected by its quality.
+SGT trains its own classifier; longer training does not guarantee that its
+attributions will match the paper. Full-test macro-F1 will be recorded alongside
+SGT's attribution metrics.
 
-### 5.3 Baseline Behavior and Implementation Caveats
-1. **WinIT & Dynamask**:
-   These two baselines exhibited virtually identical behavior between the reproduction and original paper across all four datasets. Because Dynamask optimizes per-sample perturbation masks and WinIT samples counterfactual paths from trained generators, they operate independently of time-series predictor architecture quirks.
-2. **CoRTX**:
-   - On **SeqComb-MV**, CoRTX was an almost exact reproduction (`0.3623` vs `0.3629` AUPRC; `0.3453` vs `0.3457` AUR).
-   - On **LowVar** (`0.1124` vs `0.4983` AUPRC), **FreqShapes** (`0.5537` vs `0.6978`) and **SeqComb-UV** (`0.4105` vs `0.5643`) it falls short. This is attributable to the reimplementation: the upstream legacy code had an obsolete dependency on `PyGCL`, necessitating a local symmetric in-batch InfoNCE loss (see [`experiments/TABLE2.md`](experiments/TABLE2.md)), and the mask decoder is trained to reconstruct the input rather than to distil approximate Shapley targets.
-   - The InfoNCE objective barely moves during training: on FreqShapes the encoder loss goes `3.75 → 3.34` over 100 epochs against a batch-64 chance level of `ln 64 ≈ 4.16`, and the decoder MSE only `0.45 → 0.39`. The representation the masks are read off is therefore weakly trained.
-   - **Do not read CoRTX's higher-than-published AUR as an improvement.** It scores `0.5000 ± 0.0000` on all five FreqShapes folds against a published `0.3261`. AUR here is `auc(thresholds, recall)`; an explanation whose scores are spread across the range but only weakly correlated with the ground truth gives `recall(t) ≈ 1 - t` and hence AUR ≈ 0.5 — this metric's uninformative value. The masks are genuinely continuous (50 and 200 distinct values per sample, not saturated), so this is a diffuse score distribution rather than a degenerate mask, but it still means the AUR gain comes with a `-0.12`/`-0.24` AUP loss. The same signature appears on LowVar (`0.6667 ± 0.0000`).
-3. **SGT + Grad**:
-   SGT achieved lower scores in reproduction because the evaluation script applied absolute gradients from the trained model directly, whereas the original snapshot tested a mixture of masked training inputs.
-   - For Table 1 SGT trains its own classifier for the same budget as the predictor it replaces (100 epochs on FreqShapes, 200 on SeqComb-UV), rather than the 10 epochs used for Table 2. Losses converge consistently (`~1.15 → 0.63` and `~1.39 → 0.73`), so undertraining is not the limiting factor there.
-   - **SeqComb-UV reproduces respectably**: AUPRC `0.4402` vs `0.5731`, and AUP `0.8453` *above* the published `0.7828`, stable across folds (fold SE `0.0128`).
-   - **FreqShapes is unstable**: `0.2900 ± 0.0726` AUPRC, driven by a single outlying fold (split 2 at `0.5748`, close to the published `0.5312`) against `0.18–0.26` on the other four. Since the loss curves are near-identical across folds, the spread comes from the saliency-guided objective's attributions, not from training failure.
+CoRTX's local and released cross-view InfoNCE formulas agree in forward loss and
+both input gradients to 1e-12 in the tested float64 cases. Replacing InfoNCE is
+therefore not a supported fix. The remaining multivariate reconstruction
+adaptation and LowVar saturation issue are documented in
+[the audit](table2_deviations.md). A close metric match cannot resolve provenance.
 
-### 5.4 Statistical Aggregation Nuances
-- **Pooled Standard Error vs. Fold-Level Standard Error**:
-  Historical runs concatenated all test samples across folds and computed $\sigma / \sqrt{N_{\text{samples}}}$, producing artificially tiny confidence intervals ($\sim 0.001 - 0.003$).
-  The updated Table 2 runner computes the true sample standard error across the 5 independent fold means ($\sigma / \sqrt{5}$ with `ddof=1`), matching standard machine learning evaluation practices.
-
----
+Fold standard error is the primary uncertainty: standard deviation of fold
+means with `ddof=1`, divided by the square root of the number of folds. The
+historical pooled convention treats individual explanations as observations and
+uses `ddof=0`; it is retained as explicitly labelled pooled uncertainty. These
+are different estimands, and the much smaller pooled SE is not evidence of
+stability across folds or training seeds. Seeds 43/44 are conditional follow-ups
+for affected supported rows and must both be reported, without selecting the
+closest seed.
 
 ## 6. Artifact & File References
 
@@ -160,10 +187,24 @@ While TimeX is still the #1 method on SeqComb-MV (AUP 0.7308, AUPRC 0.3735), the
   - IG: [`results/table1/freqshape_ig_evaluation.log`](results/table1/freqshape_ig_evaluation.log)
   - WinIT: [`results/table1/freqshape_winit_evaluation.log`](results/table1/freqshape_winit_evaluation.log)
 - **Table 1 Full Run (Seed 42)**: [`timex_21712429/seed_42/results/`](timex_21712429/seed_42/results/) & [`results.md`](results.md)
-- **Table 2 Full Run (Seed 42)**: [`timex_table2_21846132/seed_42/results/`](timex_table2_21846132/seed_42/results/)
+- **Historical Table 2 Run (Seed 42)**: [`timex_table2_21846132/seed_42/results/`](timex_table2_21846132/seed_42/results/)
   - Summary: [`timex_table2_21846132/seed_42/results/table2_summary.md`](timex_table2_21846132/seed_42/results/table2_summary.md)
   - CSV format: [`timex_table2_21846132/seed_42/results/table2_summary.csv`](timex_table2_21846132/seed_42/results/table2_summary.csv)
   - Slurm Job Log: [`timex-table2-21846132.out`](timex-table2-21846132.out)
 - **Workflows & Runner Instructions**:
   - [`experiments/TABLE1.md`](experiments/TABLE1.md)
   - [`experiments/TABLE2.md`](experiments/TABLE2.md)
+
+## 7. Local validation and user-run GPU commands
+
+```bash
+PYTHONPATH=. uv run python -m unittest discover -s tests -p 'test_table2_repairs.py' -v
+PYTHONPATH=. uv run python experiments/evaluation/diagnose_table2.py --output results/table2_cpu_diagnosis.json
+bash -n run_table2.sh sj_timex_table2
+./run_table2.sh --datasets seqcomb_mv --folds 1 --methods ours --dry-run
+```
+
+The diagnosis requires `dataset/` and the historical archive. The focused tests
+use generated CPU tensors and temporary artifacts. No GPU job was submitted.
+The [workflow](experiments/TABLE2.md#gpu-pilots-and-full-run) gives all pilot,
+full-run, archived-resume, and conditional seed-43/44 submission commands.

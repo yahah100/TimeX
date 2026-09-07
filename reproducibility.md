@@ -1,3 +1,13 @@
+## Repaired Table 2 workflow
+
+Use [experiments/TABLE2.md](experiments/TABLE2.md) for the versioned runner,
+validation gates, CPU checks, Slurm pilots and archived resume. `./run_table2.sh
+--dry-run` previews dependencies. Historical reports are preserved separately
+from repaired results; all three attribution metrics must satisfy ±0.05 over
+five traceable folds. GPU runs are to be submitted by the user. The generic
+research-script instructions below do not provide the repaired runner's
+provenance or checkpoint-quality guarantees.
+
 # Reproducing Experiments
 This file gives instructions on how to reproduce the findings in the TimeX paper. These experiments will be organized by structure of the paper, so please reference those sections.
 

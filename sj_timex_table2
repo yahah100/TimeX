@@ -17,10 +17,16 @@ set -Eeuo pipefail
 readonly DEFAULT_PROJECT_DIR="/beegfs/hahn/workspace/TimeX"
 readonly PROJECT_DIR="${TIMEX_CLUSTER_PROJECT_DIR:-$DEFAULT_PROJECT_DIR}"
 SEEDS="42"
+RUN_ARGS=()
+RESUME_FROM=()
 
 usage() {
     cat <<'EOF'
-Usage: sbatch sj_timex_table2 [--seed N | --seeds "N ..."]
+Usage: sbatch sj_timex_table2 [--seed N | --seeds "N ..."] [runner options]
+
+Accepts --datasets, --methods, --folds, --protocol, --stage, --winit-epochs,
+--predictor-attempts, --predictor-min-f1, --max-samples and --dry-run.
+--resume-from PATH may be repeated; PATH is an archived timex_table2_<job-id>.
 
 Run both Table 2 datasets, all five folds, and all six methods on one GPU.
 Seeds run sequentially and default to 42. Outputs are archived under:
@@ -33,6 +39,10 @@ die() { echo "Error: $*" >&2; exit 2; }
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --seed|--seeds) [[ $# -ge 2 ]] || die "$1 requires a value"; SEEDS="$2"; shift 2 ;;
+        --resume-from) [[ $# -ge 2 ]] || die "$1 requires a value"; RESUME_FROM+=("$2"); shift 2 ;;
+        --datasets|--methods|--folds|--protocol|--stage|--winit-epochs|--predictor-attempts|--predictor-min-f1|--max-samples)
+            [[ $# -ge 2 ]] || die "$1 requires a value"; RUN_ARGS+=("$1" "$2"); shift 2 ;;
+        --dry-run) RUN_ARGS+=("$1"); shift ;;
         -h|--help) usage; exit 0 ;;
         *) die "unknown option: $1" ;;
     esac
@@ -59,13 +69,8 @@ sync_active_seed() {
     [[ -n "$ACTIVE_SEED_DIR" && -n "$ACTIVE_ARCHIVE_DIR" ]] || return 0
     mkdir -p "$ACTIVE_ARCHIVE_DIR/results" "$ACTIVE_ARCHIVE_DIR/models"
     [[ ! -d "$ACTIVE_SEED_DIR/results" ]] || rsync -a "$ACTIVE_SEED_DIR/results/" "$ACTIVE_ARCHIVE_DIR/results/"
-    for dataset in seqcomb_mv lowvardetect; do
-        source_models="$ACTIVE_SEED_DIR/repo/experiments/$dataset/models"
-        if [[ -d "$source_models" ]]; then
-            mkdir -p "$ACTIVE_ARCHIVE_DIR/models/$dataset"
-            rsync -a "$source_models/" "$ACTIVE_ARCHIVE_DIR/models/$dataset/"
-        fi
-    done
+    [[ ! -d "$ACTIVE_SEED_DIR/models" ]] || rsync -a "$ACTIVE_SEED_DIR/models/" "$ACTIVE_ARCHIVE_DIR/models/"
+
 }
 
 clean_up() {
@@ -96,6 +101,15 @@ require_dir "$DATA_SOURCE/LowVarDetect"
 command -v rsync >/dev/null 2>&1 || die "rsync is required"
 
 mkdir -p "$WORK_DIR" "$DATA_DIR" "$ARCHIVE_DIR"
+for resume in "${RESUME_FROM[@]}"; do require_dir "$resume"; done
+# Preserve the submitted implementation alongside numerical artifacts.
+mkdir -p "$ARCHIVE_DIR/source"
+rsync -a --exclude='.git/' --exclude='.venv/' --exclude='dataset/' \
+    --exclude='results/' --exclude='cluster_runs/' --exclude='timex_*/' \
+    --exclude='timex_table2_*/' --exclude='*.pt' --exclude='*.out' \
+    --exclude='__pycache__/' "$SUBMIT_DIR/" "$ARCHIVE_DIR/source/"
+git -C "$SUBMIT_DIR" rev-parse HEAD > "$ARCHIVE_DIR/git_revision.txt" || true
+git -C "$SUBMIT_DIR" diff --binary > "$ARCHIVE_DIR/implementation.patch" || true
 echo "Job $SLURM_JOB_ID on $(hostname); scratch: $WORK_DIR; archive: $ARCHIVE_DIR; seeds: $SEEDS"
 rsync -a "$DATA_SOURCE/SeqCombMV" "$DATA_DIR/"
 rsync -a "$DATA_SOURCE/LowVarDetect" "$DATA_DIR/"
@@ -113,12 +127,18 @@ for seed in $SEEDS; do
     mkdir -p "$repo_dir" "$seed_root/results"
     rsync -a --exclude='.git/' --exclude='.venv/' --exclude='dataset/' \
         --exclude='logs/' --exclude='results/' --exclude='cluster_runs/' \
+        --exclude='timex_*/' --exclude='timex_table2_*/' \
+        --exclude='*.pt' --exclude='*.out' --exclude='__pycache__/' \
         --exclude='experiments/seqcomb_mv/models/' \
         --exclude='experiments/lowvardetect/models/' "$SUBMIT_DIR/" "$repo_dir/"
+    for resume in "${RESUME_FROM[@]}"; do
+        [[ ! -d "$resume/seed_$seed/models" ]] || rsync -a "$resume/seed_$seed/models/" "$seed_root/models/"
+        [[ ! -d "$resume/seed_$seed/results" ]] || rsync -a "$resume/seed_$seed/results/" "$seed_root/results/"
+    done
     ln -s "$SUBMIT_DIR/.venv" "$repo_dir/.venv"
     export PYTHONPATH="$repo_dir"
     echo "=== Seed $seed starting at $(date) ==="
-    (cd "$repo_dir" && ./run_table2.sh --seed "$seed" --results-dir "$seed_root/results")
+    (cd "$repo_dir" && ./run_table2.sh --seed "$seed" --results-dir "$seed_root/results" --models-dir "$seed_root/models" "${RUN_ARGS[@]}")
     echo "=== Seed $seed completed at $(date) ==="
     sync_active_seed
     ACTIVE_SEED_DIR=""

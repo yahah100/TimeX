@@ -12,13 +12,14 @@ It covers both **Table 1** (Univariate Attribution) and **Table 2** (Multivariat
 - **Univariate Datasets (Table 1)**:
   - **FreqShapes**: Reproduced exceptionally well. TimeX achieves **0.8401–0.8713 AUPRC** (paper: 0.8324) and **0.7440–0.7898 AUP** (paper: 0.7219), outperforming all baselines.
   - **SeqComb-UV**: TimeX remains #1 on AUPRC (0.6831), AUP (0.9022), and IoU (0.4943). A slight ranking swap occurs on AUR (IG scored 0.3415 vs TimeX 0.2989; paper had TimeX at 0.3380 and IG at 0.2868).
+  - **CoRTX and SGT + Grad** were added at base seed 42 against the same predictors as the other rows. Both land well below the published figures (CoRTX -0.14/-0.15 AUPRC, SGT -0.24/-0.13), for the reimplementation reasons in §5.3. They do not disturb TimeX's #1 rank on any metric.
 - **Multivariate Datasets (Table 2)**:
   - **LowVar**: Replicated with high precision. TimeX ranks #1 on all three attribution metrics: **AUPRC (0.8371)**, **AUP (0.5070)**, and **AUR (0.9031)**, matching the published AUR (0.9004) and leading baselines.
   - **SeqComb-MV**: TimeX preserves #1 rank on AUP (0.7308) and AUPRC (0.3735), but shows an absolute drop against the paper (0.6878 AUPRC). Investigation of per-split logs reveals that predictor convergence issues on splits 3 and 4 (F1 ~0.75–0.78 vs ~0.96–0.98 on other splits) caused downstream degradation in attribution quality.
 - **Baselines**:
   - **WinIT and Dynamask**: Replicate published results with remarkable fidelity across all benchmarks (often within ±0.01 to ±0.03 of paper metrics).
   - **Integrated Gradients (IG)**: Strong baseline performance closely matching paper trends.
-  - **CoRTX and SGT + Grad**: Replicated for Table 2 using updated implementations (in-batch InfoNCE for CoRTX due to obsolete `PyGCL`; model gradients for SGT). CoRTX matches SeqComb-MV almost exactly (0.3623 vs 0.3629 AUPRC), while SGT scores lower than published.
+  - **CoRTX and SGT + Grad**: Replicated on all four synthetic datasets using updated implementations (in-batch InfoNCE for CoRTX due to obsolete `PyGCL`; model gradients for SGT). CoRTX matches SeqComb-MV almost exactly (0.3623 vs 0.3629 AUPRC) but falls short everywhere else; SGT reproduces SeqComb-UV's AUP above the paper (0.8453 vs 0.7828) yet collapses on FreqShapes.
 
 ---
 
@@ -47,16 +48,27 @@ Metrics are reported as `Reproduction / Paper (Difference)`. Higher is better.
 | | IG | 0.7846 / 0.7516 *(+0.0330)* | 0.7290 / 0.6912 *(+0.0378)* | 0.5777 / 0.5975 *(-0.0198)* | 0.4777 / — |
 | | Dynamask | 0.2415 / 0.2201 *(+0.0214)* | 0.3391 / 0.2952 *(+0.0439)* | 0.4949 / 0.5037 *(-0.0088)* | 0.1837 / — |
 | | WinIT | 0.5048 / 0.5071 *(-0.0023)* | 0.5611 / 0.5546 *(+0.0065)* | 0.4494 / 0.4557 *(-0.0063)* | 0.2575 / — |
-| | *CoRTX* | — / 0.6978 | — / 0.4938 | — / 0.3261 | — |
-| | *SGT + Grad* | — / 0.5312 | — / 0.4138 | — / 0.3931 | — |
+| | CoRTX | 0.5537 / 0.6978 *(-0.1441)* | 0.3720 / 0.4938 *(-0.1218)* | 0.5000 / 0.3261 *(+0.1739)* | 0.3829 / — |
+| | SGT + Grad | 0.2900 / 0.5312 *(-0.2412)* | 0.2026 / 0.4138 *(-0.2112)* | 0.3004 / 0.3931 *(-0.0927)* | 0.1206 / — |
 | **SeqComb-UV** | **TimeX** | **0.6831** / 0.7124 *(-0.0293)* | **0.9022** / 0.9411 *(-0.0389)* | **0.2989** / 0.3380 *(-0.0391)* | **0.4943** / 0.5214 *(-0.0271)* |
 | | IG | 0.5089 / 0.5760 *(-0.0671)* | 0.7501 / 0.8157 *(-0.0656)* | 0.3415 / 0.2868 *(+0.0547)* | 0.3183 / 0.3750 *(-0.0567)* |
 | | Dynamask | 0.4363 / 0.4421 *(-0.0058)* | 0.8727 / 0.8782 *(-0.0055)* | 0.1047 / 0.1029 *(+0.0018)* | 0.2940 / 0.2958 *(-0.0018)* |
 | | WinIT | 0.4577 / 0.4568 *(+0.0009)* | 0.7718 / 0.7872 *(-0.0154)* | 0.2426 / 0.2253 *(+0.0173)* | 0.2851 / — |
-| | *CoRTX* | — / 0.5643 | — / 0.8241 | — / 0.1749 | — |
-| | *SGT + Grad* | — / 0.5731 | — / 0.7828 | — / 0.2136 | — |
+| | CoRTX | 0.4105 / 0.5643 *(-0.1538)* | 0.5852 / 0.8241 *(-0.2389)* | 0.3383 / 0.1749 *(+0.1634)* | 0.2517 / — |
+| | SGT + Grad | 0.4402 / 0.5731 *(-0.1329)* | 0.8453 / 0.7828 *(+0.0625)* | 0.1536 / 0.2136 *(-0.0600)* | 0.2530 / — |
 
-*(Note: In the local `results/table1` run using seed 0, TimeX on FreqShapes reached 0.8713 AUPRC, 0.7898 AUP, 0.6266 AUR, and 0.5323 IoU).*
+*(Note: In an earlier local run using seed 0, TimeX on FreqShapes reached 0.8713 AUPRC, 0.7898 AUP, 0.6266 AUR, and 0.5323 IoU).*
+
+All six methods now have reproduced Table 1 numbers at base seed 42. CoRTX and SGT + Grad
+were added last and use the reimplementations in `txai/baselines/synth_baselines.py`; both
+fall materially short of the published values, and §5.3 explains why. **TimeX keeps rank #1
+on every metric of both univariate datasets**, so the paper's central claim is unaffected —
+but the baseline ordering below TimeX changes:
+
+| Dataset | Metric | Published order | Reproduced order |
+| :--- | :--- | :--- | :--- |
+| FreqShapes | AUPRC | TimeX > IG > CoRTX > SGT > WinIT > Dynamask | TimeX > IG > CoRTX > WinIT > SGT > Dynamask |
+| SeqComb-UV | AUPRC | TimeX > IG > SGT > CoRTX > WinIT > Dynamask | TimeX > IG > WinIT > SGT > Dynamask > CoRTX |
 
 ### Table 10: SeqComb-UV Intersection over Union (IoU)
 
@@ -69,6 +81,8 @@ The paper evaluates IoU to verify attribution map localization without threshold
 | **Dynamask**| 0.2940 | 0.2958 | -0.0018 | #3 | #3 |
 
 **Result**: The IoU ranking is 100% preserved. TimeX maintains a +0.1760 IoU lead over the closest baseline.
+
+The paper reports no IoU for the remaining methods; the reproduction measures WinIT at 0.2851, SGT + Grad at 0.2530, and CoRTX at 0.2517 on SeqComb-UV, all below Dynamask and far below TimeX.
 
 ---
 
@@ -122,9 +136,14 @@ While TimeX is still the #1 method on SeqComb-MV (AUP 0.7308, AUPRC 0.3735), the
    These two baselines exhibited virtually identical behavior between the reproduction and original paper across all four datasets. Because Dynamask optimizes per-sample perturbation masks and WinIT samples counterfactual paths from trained generators, they operate independently of time-series predictor architecture quirks.
 2. **CoRTX**:
    - On **SeqComb-MV**, CoRTX was an almost exact reproduction (`0.3623` vs `0.3629` AUPRC; `0.3453` vs `0.3457` AUR).
-   - On **LowVar**, CoRTX deviated (`0.1124` vs `0.4983` AUPRC). This is attributable to the loss reimplementation: the upstream legacy code had an obsolete dependency on `PyGCL`, necessitating a local symmetric in-batch InfoNCE loss implementation (see [`experiments/TABLE2.md`](experiments/TABLE2.md#L36-L38)).
+   - On **LowVar** (`0.1124` vs `0.4983` AUPRC), **FreqShapes** (`0.5537` vs `0.6978`) and **SeqComb-UV** (`0.4105` vs `0.5643`) it falls short. This is attributable to the reimplementation: the upstream legacy code had an obsolete dependency on `PyGCL`, necessitating a local symmetric in-batch InfoNCE loss (see [`experiments/TABLE2.md`](experiments/TABLE2.md)), and the mask decoder is trained to reconstruct the input rather than to distil approximate Shapley targets.
+   - The InfoNCE objective barely moves during training: on FreqShapes the encoder loss goes `3.75 → 3.34` over 100 epochs against a batch-64 chance level of `ln 64 ≈ 4.16`, and the decoder MSE only `0.45 → 0.39`. The representation the masks are read off is therefore weakly trained.
+   - **Do not read CoRTX's higher-than-published AUR as an improvement.** It scores `0.5000 ± 0.0000` on all five FreqShapes folds against a published `0.3261`. AUR here is `auc(thresholds, recall)`; an explanation whose scores are spread across the range but only weakly correlated with the ground truth gives `recall(t) ≈ 1 - t` and hence AUR ≈ 0.5 — this metric's uninformative value. The masks are genuinely continuous (50 and 200 distinct values per sample, not saturated), so this is a diffuse score distribution rather than a degenerate mask, but it still means the AUR gain comes with a `-0.12`/`-0.24` AUP loss. The same signature appears on LowVar (`0.6667 ± 0.0000`).
 3. **SGT + Grad**:
    SGT achieved lower scores in reproduction because the evaluation script applied absolute gradients from the trained model directly, whereas the original snapshot tested a mixture of masked training inputs.
+   - For Table 1 SGT trains its own classifier for the same budget as the predictor it replaces (100 epochs on FreqShapes, 200 on SeqComb-UV), rather than the 10 epochs used for Table 2. Losses converge consistently (`~1.15 → 0.63` and `~1.39 → 0.73`), so undertraining is not the limiting factor there.
+   - **SeqComb-UV reproduces respectably**: AUPRC `0.4402` vs `0.5731`, and AUP `0.8453` *above* the published `0.7828`, stable across folds (fold SE `0.0128`).
+   - **FreqShapes is unstable**: `0.2900 ± 0.0726` AUPRC, driven by a single outlying fold (split 2 at `0.5748`, close to the published `0.5312`) against `0.18–0.26` on the other four. Since the loss curves are near-identical across folds, the spread comes from the saliency-guided objective's attributions, not from training failure.
 
 ### 5.4 Statistical Aggregation Nuances
 - **Pooled Standard Error vs. Fold-Level Standard Error**:

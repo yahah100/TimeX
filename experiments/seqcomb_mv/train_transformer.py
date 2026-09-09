@@ -83,7 +83,9 @@ def main(args):
                     validation_macro_f1=score,
                     selected_epoch=val_scores.index(score) + 1,
                     checkpoint=save_path.name,
-                    checkpoint_sha256=hashlib.sha256(save_path.read_bytes()).hexdigest(),
+                    checkpoint_sha256=hashlib.sha256(
+                        save_path.read_bytes()
+                    ).hexdigest(),
                 )
             )
             quality = dict(

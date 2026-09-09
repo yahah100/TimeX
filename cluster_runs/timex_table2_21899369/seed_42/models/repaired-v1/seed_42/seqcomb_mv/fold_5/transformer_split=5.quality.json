@@ -1,0 +1,15 @@
+{
+  "attempts": [
+    {
+      "attempt": 0,
+      "seed": 46,
+      "validation_macro_f1": 1.0,
+      "selected_epoch": 189,
+      "checkpoint": "transformer_split=5_attempt=0.pt",
+      "checkpoint_sha256": "e782ec8ca212414515aa3a3709a6855eb8a93453a645a17629a440f31f5bc2a2"
+    }
+  ],
+  "validation_macro_f1": 1.0,
+  "minimum_macro_f1": 0.95,
+  "qualified": true
+}

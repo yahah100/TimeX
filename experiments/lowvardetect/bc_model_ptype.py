@@ -151,6 +151,9 @@ def main(args):
             torch.load(str(tencoder_path).format(i), map_location=device)
         )
         model.to(device)
+        model.encoder_main.requires_grad_(False)
+        if args.training_version == "repaired-v1":
+            model.encoder_main.eval()
 
         model.init_prototypes(
             train=(
@@ -164,9 +167,6 @@ def main(args):
             model.encoder_t.load_state_dict(
                 torch.load(str(tencoder_path).format(i), map_location=device)
             )
-
-        for param in model.encoder_main.parameters():
-            param.requires_grad = False
 
         optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3, weight_decay=0.0001)
 
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--connectivity-version",
         choices=("legacy", "temporal-l1-v1"),
-        default="temporal-l1-v1",
+        default="legacy",
     )
     parser.add_argument(
         "--training-version", choices=("legacy", "repaired-v1"), default="repaired-v1"

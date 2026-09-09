@@ -1,0 +1,502 @@
+[
+  {
+    "epoch": 1,
+    "reconstruction_mse": 0.5447292127941228,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.3474645,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411838378906,
+    "mask_mean": 0.41395910095214844,
+    "mask_std": 0.4106563894218267,
+    "encoder_training": true
+  },
+  {
+    "epoch": 2,
+    "reconstruction_mse": 0.49434261495553994,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.4739125,
+    "bounded_reconstruction_mse_lower_bound": 0.484841185546875,
+    "mask_mean": 0.41708023620605467,
+    "mask_std": 0.4344032498726217,
+    "encoder_training": true
+  },
+  {
+    "epoch": 3,
+    "reconstruction_mse": 0.4913613818868806,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.476118,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118591308595,
+    "mask_mean": 0.4173676005859375,
+    "mask_std": 0.4319362814864484,
+    "encoder_training": true
+  },
+  {
+    "epoch": 4,
+    "reconstruction_mse": 0.48896942787532566,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.497473,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118701171874,
+    "mask_mean": 0.41767148193359377,
+    "mask_std": 0.42928860473232744,
+    "encoder_training": true
+  },
+  {
+    "epoch": 5,
+    "reconstruction_mse": 0.48746973917454106,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.5253385,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411866455078,
+    "mask_mean": 0.4176383610839844,
+    "mask_std": 0.42829933488359284,
+    "encoder_training": true
+  },
+  {
+    "epoch": 6,
+    "reconstruction_mse": 0.4873897614358347,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.5435695,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118420410155,
+    "mask_mean": 0.41761888311767575,
+    "mask_std": 0.4279887423100186,
+    "encoder_training": true
+  },
+  {
+    "epoch": 7,
+    "reconstruction_mse": 0.48651023341130606,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.555082,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411854248047,
+    "mask_mean": 0.4176593094482422,
+    "mask_std": 0.42785279253882197,
+    "encoder_training": true
+  },
+  {
+    "epoch": 8,
+    "reconstruction_mse": 0.48689437440679045,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.5635965,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118701171874,
+    "mask_mean": 0.4176460244140625,
+    "mask_std": 0.42784783791930286,
+    "encoder_training": true
+  },
+  {
+    "epoch": 9,
+    "reconstruction_mse": 0.4862119830861876,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.5699175,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411851196289,
+    "mask_mean": 0.4176400778198242,
+    "mask_std": 0.4278181493511889,
+    "encoder_training": true
+  },
+  {
+    "epoch": 10,
+    "reconstruction_mse": 0.4860414040239551,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.575808,
+    "bounded_reconstruction_mse_lower_bound": 0.48484119049072266,
+    "mask_mean": 0.41765493872070314,
+    "mask_std": 0.42781985160673325,
+    "encoder_training": true
+  },
+  {
+    "epoch": 11,
+    "reconstruction_mse": 0.48579124634778953,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.5802315,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411820678711,
+    "mask_mean": 0.41766730249023437,
+    "mask_std": 0.42779580225798675,
+    "encoder_training": true
+  },
+  {
+    "epoch": 12,
+    "reconstruction_mse": 0.4863351930545855,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.584349,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411862792969,
+    "mask_mean": 0.4176394876708984,
+    "mask_std": 0.42778117841891294,
+    "encoder_training": true
+  },
+  {
+    "epoch": 13,
+    "reconstruction_mse": 0.4854106220263469,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.5875145,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118811035154,
+    "mask_mean": 0.41766491564941405,
+    "mask_std": 0.427765014582656,
+    "encoder_training": true
+  },
+  {
+    "epoch": 14,
+    "reconstruction_mse": 0.485809209226053,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.590285,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118395996095,
+    "mask_mean": 0.4176747141113281,
+    "mask_std": 0.4277466842562495,
+    "encoder_training": true
+  },
+  {
+    "epoch": 15,
+    "reconstruction_mse": 0.4858313436749615,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.5932,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411829223633,
+    "mask_mean": 0.41765376049804687,
+    "mask_std": 0.42770381716078987,
+    "encoder_training": true
+  },
+  {
+    "epoch": 16,
+    "reconstruction_mse": 0.48534199180482307,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.5954625,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118499755857,
+    "mask_mean": 0.417684727355957,
+    "mask_std": 0.42768089780244256,
+    "encoder_training": true
+  },
+  {
+    "epoch": 17,
+    "reconstruction_mse": 0.48573560993882675,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.5977635,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411853027344,
+    "mask_mean": 0.41769681616210935,
+    "mask_std": 0.4276560592030881,
+    "encoder_training": true
+  },
+  {
+    "epoch": 18,
+    "reconstruction_mse": 0.48554975058459027,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.5998455,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118212890626,
+    "mask_mean": 0.41765255450439454,
+    "mask_std": 0.4276198315839701,
+    "encoder_training": true
+  },
+  {
+    "epoch": 19,
+    "reconstruction_mse": 0.4859343220161486,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6021915,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118212890626,
+    "mask_mean": 0.4176433137207031,
+    "mask_std": 0.427587447943875,
+    "encoder_training": true
+  },
+  {
+    "epoch": 20,
+    "reconstruction_mse": 0.4852832325651676,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.60417,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411895751953,
+    "mask_mean": 0.41769401306152343,
+    "mask_std": 0.42757631357808945,
+    "encoder_training": true
+  },
+  {
+    "epoch": 21,
+    "reconstruction_mse": 0.48493510748766644,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.606279,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118780517577,
+    "mask_mean": 0.41770221948242187,
+    "mask_std": 0.42755395374889726,
+    "encoder_training": true
+  },
+  {
+    "epoch": 22,
+    "reconstruction_mse": 0.4851882491685167,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6083445,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118615722654,
+    "mask_mean": 0.41767542236328126,
+    "mask_std": 0.4275237974529787,
+    "encoder_training": true
+  },
+  {
+    "epoch": 23,
+    "reconstruction_mse": 0.48546127352533464,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.610205,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411846313477,
+    "mask_mean": 0.41770541912841797,
+    "mask_std": 0.42749992572263923,
+    "encoder_training": true
+  },
+  {
+    "epoch": 24,
+    "reconstruction_mse": 0.48502271575263783,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6120435,
+    "bounded_reconstruction_mse_lower_bound": 0.484841185546875,
+    "mask_mean": 0.41767391162109374,
+    "mask_std": 0.4274844648914134,
+    "encoder_training": true
+  },
+  {
+    "epoch": 25,
+    "reconstruction_mse": 0.4852059875862508,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.613619,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411838989258,
+    "mask_mean": 0.4177135621337891,
+    "mask_std": 0.4274893387082398,
+    "encoder_training": true
+  },
+  {
+    "epoch": 26,
+    "reconstruction_mse": 0.4852610864216768,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6150035,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411851196289,
+    "mask_mean": 0.4177397456054687,
+    "mask_std": 0.4274556415560788,
+    "encoder_training": true
+  },
+  {
+    "epoch": 27,
+    "reconstruction_mse": 0.48552012896235985,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6162675,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411866455078,
+    "mask_mean": 0.41776785009765627,
+    "mask_std": 0.4274495162899825,
+    "encoder_training": true
+  },
+  {
+    "epoch": 28,
+    "reconstruction_mse": 0.4853300723848464,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.617844,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118774414064,
+    "mask_mean": 0.41772718762207034,
+    "mask_std": 0.427444257653607,
+    "encoder_training": true
+  },
+  {
+    "epoch": 29,
+    "reconstruction_mse": 0.4853528138202957,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6187305,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118798828124,
+    "mask_mean": 0.41774359112548826,
+    "mask_std": 0.42742413565917287,
+    "encoder_training": true
+  },
+  {
+    "epoch": 30,
+    "reconstruction_mse": 0.48527461554430706,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.619812,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118170166013,
+    "mask_mean": 0.41776142028808594,
+    "mask_std": 0.4274275977113404,
+    "encoder_training": true
+  },
+  {
+    "epoch": 31,
+    "reconstruction_mse": 0.48536662776258926,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6208345,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118518066405,
+    "mask_mean": 0.4177349189453125,
+    "mask_std": 0.4274195414035676,
+    "encoder_training": true
+  },
+  {
+    "epoch": 32,
+    "reconstruction_mse": 0.4852645880059351,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.621884,
+    "bounded_reconstruction_mse_lower_bound": 0.484841188293457,
+    "mask_mean": 0.41775974755859374,
+    "mask_std": 0.42743082649127495,
+    "encoder_training": true
+  },
+  {
+    "epoch": 33,
+    "reconstruction_mse": 0.48503072993664803,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.622776,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411846923828,
+    "mask_mean": 0.4177432229614258,
+    "mask_std": 0.4274053059949678,
+    "encoder_training": true
+  },
+  {
+    "epoch": 34,
+    "reconstruction_mse": 0.4850808891314494,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.623493,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118518066405,
+    "mask_mean": 0.4177252144775391,
+    "mask_std": 0.42739480126595675,
+    "encoder_training": true
+  },
+  {
+    "epoch": 35,
+    "reconstruction_mse": 0.48534029231795783,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6240165,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118713378904,
+    "mask_mean": 0.4177273104248047,
+    "mask_std": 0.4273973998935952,
+    "encoder_training": true
+  },
+  {
+    "epoch": 36,
+    "reconstruction_mse": 0.4847702482078649,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6248445,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118139648436,
+    "mask_mean": 0.4177286990966797,
+    "mask_std": 0.427382290099214,
+    "encoder_training": true
+  },
+  {
+    "epoch": 37,
+    "reconstruction_mse": 0.484851929583127,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.625568,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118359375,
+    "mask_mean": 0.41771642456054686,
+    "mask_std": 0.42738506899197454,
+    "encoder_training": true
+  },
+  {
+    "epoch": 38,
+    "reconstruction_mse": 0.48526173943205725,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6263535,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411862792969,
+    "mask_mean": 0.41770776538085935,
+    "mask_std": 0.4273800476887099,
+    "encoder_training": true
+  },
+  {
+    "epoch": 39,
+    "reconstruction_mse": 0.4850712931608852,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.626835,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118432617185,
+    "mask_mean": 0.4177281590576172,
+    "mask_std": 0.4273824780479933,
+    "encoder_training": true
+  },
+  {
+    "epoch": 40,
+    "reconstruction_mse": 0.48517894179006166,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.62739,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118359375,
+    "mask_mean": 0.41775729962158203,
+    "mask_std": 0.4273823648454069,
+    "encoder_training": true
+  },
+  {
+    "epoch": 41,
+    "reconstruction_mse": 0.4849218552625632,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.627827,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118743896487,
+    "mask_mean": 0.4177410537719727,
+    "mask_std": 0.4273841366528767,
+    "encoder_training": true
+  },
+  {
+    "epoch": 42,
+    "reconstruction_mse": 0.48485580803472783,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6285255,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411845703125,
+    "mask_mean": 0.4177362553100586,
+    "mask_std": 0.4273740686839972,
+    "encoder_training": true
+  },
+  {
+    "epoch": 43,
+    "reconstruction_mse": 0.48509410061413727,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.629117,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411838989258,
+    "mask_mean": 0.4177558416748047,
+    "mask_std": 0.42736678045345283,
+    "encoder_training": true
+  },
+  {
+    "epoch": 44,
+    "reconstruction_mse": 0.4850760068320021,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.629601,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118414306643,
+    "mask_mean": 0.4177553779296875,
+    "mask_std": 0.42736575347190503,
+    "encoder_training": true
+  },
+  {
+    "epoch": 45,
+    "reconstruction_mse": 0.48502007768123967,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.629972,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411834716797,
+    "mask_mean": 0.41776142053222654,
+    "mask_std": 0.42737378622992045,
+    "encoder_training": true
+  },
+  {
+    "epoch": 46,
+    "reconstruction_mse": 0.4850279828415641,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6306945,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118420410155,
+    "mask_mean": 0.4177654777832031,
+    "mask_std": 0.42736253260118917,
+    "encoder_training": true
+  },
+  {
+    "epoch": 47,
+    "reconstruction_mse": 0.4847844439216807,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.631191,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411845703125,
+    "mask_mean": 0.41774553515625,
+    "mask_std": 0.4273655835351263,
+    "encoder_training": true
+  },
+  {
+    "epoch": 48,
+    "reconstruction_mse": 0.48518999882891206,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6313315,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411885986328,
+    "mask_mean": 0.4177718604736328,
+    "mask_std": 0.42735028808551256,
+    "encoder_training": true
+  },
+  {
+    "epoch": 49,
+    "reconstruction_mse": 0.4856141564212268,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.632093,
+    "bounded_reconstruction_mse_lower_bound": 0.4848411864013672,
+    "mask_mean": 0.4177862896728516,
+    "mask_std": 0.4273746483336901,
+    "encoder_training": true
+  },
+  {
+    "epoch": 50,
+    "reconstruction_mse": 0.48523805224442784,
+    "outside_unit_interval": 0.640912,
+    "saturated_fraction": 0.6322525,
+    "bounded_reconstruction_mse_lower_bound": 0.48484118603515625,
+    "mask_mean": 0.4177674722900391,
+    "mask_std": 0.42735645517528476,
+    "encoder_training": true
+  }
+]

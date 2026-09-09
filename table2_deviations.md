@@ -2,9 +2,26 @@
 
 This audit supersedes the earlier attribution of every deviation to predictor
 convergence or baseline substitutions. Historical results are from
-`timex_table2_21846132/seed_42/`; repaired GPU results are pending. See the
+`timex_table2_21846132/seed_42/`; combined-repair results are now available in
+`cluster_runs/timex_table2_21899369/`. The connectivity rollback is pending. See the
 [workflow and commands](experiments/TABLE2.md) and
 [hashed CPU evidence](experiments/table2_cpu_evidence.json).
+
+## Update after job 21899369
+
+The full `repaired-v1` run completed all 60 evaluations. Reference retries
+recovered SeqComb-MV folds 3/4 to validation macro-F1 1.0. SGT LowVar AUPRC
+improved from 0.1436 to 0.4149, while still missing the three-metric tolerance.
+TimeX AUPRC regressed from 0.3735 to 0.0859 on SeqComb-MV and from 0.8371 to
+0.3134 on LowVar. Only LowVar IG, Dynamask and WinIT met all three tolerances.
+
+The default is now `connectivity-rollback-v1`: legacy connectivity with the
+reference-evaluation and clipping fixes retained. The stronger L1 penalty is
+the leading suspect, but its individual causal effect is not established by
+the combined run. Legacy connectivity retains a known axis defect and is used
+here as an explicitly identified rollback. The GPU result of this rollback
+is pending. The failed combined version remains available for controls; no
+archived results or checkpoints are deleted or rewritten.
 
 ## Confirmed defects
 
@@ -108,9 +125,10 @@ if all three SeqComb-MV metric differences happen to be within tolerance.
 
 ## What remains to be measured
 
-The focused CPU checks pass; the workflow documents Slurm pilots for legacy,
-connectivity-only and combined TimeX corrections, predictor recovery, and LowVar
-regression/baseline diagnosis. GPU execution is delegated to the user by request.
-Then run every seed-42 fold/method, reusing only matching repaired pilot artifacts.
-If supported rows still miss ±0.05 in any metric, run the affected chains at both
-seeds 43 and 44 and report every seed. No repaired row is yet numerically verified.
+The combined repair has been measured and did not reproduce TimeX. First run
+fold 1 of both datasets with `connectivity-rollback-v1`, retaining the other
+repairs and validation criterion. Compare with the recorded combined result and
+an optional `legacy-control` run. Do not change weights or choose checkpoints
+using test explanations. If the rollback succeeds, complete the five-fold run
+and assess seeds 43/44 for remaining unsupported numerical matches. CoRTX still
+has an unresolved multivariate recipe.

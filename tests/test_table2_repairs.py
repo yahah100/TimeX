@@ -6,6 +6,7 @@ from copy import deepcopy
 import importlib
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -15,6 +16,9 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
+
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
 import torch
 import torch.nn.functional as F
 
@@ -401,6 +405,8 @@ class RunnerChecks(unittest.TestCase):
             str(self.root / "results"),
             "--models-dir",
             str(self.root / "models"),
+            "--protocol",
+            "repaired-v1",
             "--datasets",
             "seqcomb_mv",
             "--methods",
@@ -533,6 +539,64 @@ class RunnerChecks(unittest.TestCase):
             json.loads(summary.read_text())["completion_status"], "partial"
         )
 
+    def test_failed_fold_does_not_block_independent_folds(self):
+        args = self.arguments("--folds", "1,2")
+        original = self.fake_run
+
+        def fail_first(command, **kwargs):
+            command = list(map(str, command))
+            if (
+                Path(command[1]).name == "train_transformer.py"
+                and command[command.index("--split-no") + 1] == "1"
+            ):
+                raise workflow.subprocess.CalledProcessError(1, command)
+            return original(command, **kwargs)
+
+        with patch.object(
+            workflow.subprocess, "run", side_effect=fail_first
+        ), redirect_stdout(io.StringIO()):
+            result = workflow.main(args)
+        self.assertEqual(result, 1)
+        records = json.loads(
+            (
+                self.root / "results/repaired-v1/seed_42/seqcomb_mv_ours_results.json"
+            ).read_text()
+        )
+        self.assertEqual([f["split"] for f in records["folds"]], [2])
+        self.assertTrue(
+            list((self.root / "models").rglob("transformer_split=1.pt.run.json"))
+        )
+
+    def test_connectivity_rollback_is_default_and_isolated(self):
+        with patch.object(sys, "argv", ["runner"]):
+            self.assertEqual(workflow.parse_args().protocol, "connectivity-rollback-v1")
+        self.assertEqual(self.run_workflow(), 0)
+        args = self.arguments(
+            "--protocol", "connectivity-rollback-v1", "--folds", "1,2,3,4,5"
+        )
+        self.assertEqual(self.run_workflow(args), 0)
+        commands = [c for c in self.calls if Path(c[1]).name == "bc_model_ptype.py"]
+        self.assertEqual(
+            commands[0][commands[0].index("--connectivity-version") + 1],
+            "temporal-l1-v1",
+        )
+        for command in commands[1:]:
+            self.assertEqual(
+                command[command.index("--connectivity-version") + 1], "legacy"
+            )
+            self.assertEqual(
+                command[command.index("--training-version") + 1], "repaired-v1"
+            )
+        root = self.root / "results"
+        previous = root / "repaired-v1/seed_42/seqcomb_mv_ours_results.json"
+        current = root / "connectivity-rollback-v1/seed_42/seqcomb_mv_ours_results.json"
+        self.assertEqual(
+            json.loads(previous.read_text())["cross_validation"]["n_folds"], 1
+        )
+        self.assertEqual(
+            json.loads(current.read_text())["completion_status"], "complete"
+        )
+
     def test_dry_run_has_no_mutations(self):
         self.assertEqual(self.run_workflow(self.arguments("--dry-run")), 0)
         self.assertFalse((self.root / "models").exists())
@@ -570,6 +634,9 @@ class RunnerChecks(unittest.TestCase):
                 if r["dataset"] == "seqcomb_mv" and r["method"] == "ours"
             ][0]["row_status"]
 
+        self.assertEqual(status(), "matched")
+        record["protocol"] = "connectivity-rollback-v1"
+        workflow.write_json(path, record)
         self.assertEqual(status(), "matched")
         record["cross_validation"]["metrics"]["aur"]["mean"] += 0.06
         workflow.write_json(path, record)

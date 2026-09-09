@@ -3,8 +3,12 @@
 The repaired workflow evaluates SeqComb-MV and LowVar, six methods, and the five
 published folds. The reference is the [TimeX paper, Tables 2, 6 and 8](https://arxiv.org/html/2306.02109v2).
 Numerical reproduction requires five traceable folds and **each** AUPRC, AUP and
-AUR difference within ±0.05. GPU runs remain to be performed by the user; CPU
-checks below establish correctness only.
+AUR difference within ±0.05. The completed `repaired-v1` run (job 21899369)
+recovered the reference predictors but regressed TimeX on both datasets. The
+new default, `connectivity-rollback-v1`, restores legacy connectivity while
+retaining predictor retries, frozen-reference evaluation, clipping after
+backward, SGT repairs, and artifact checks. Its GPU result is **not yet known**.
+CPU checks establish correctness only.
 
 ## Setup and preview
 
@@ -31,7 +35,8 @@ and `--stage evaluate`; evaluation refuses stale training artifacts.
 
 | Protocol | TimeX connectivity | Frozen reference / clipping | SGT |
 |---|---|---|---|
-| `repaired-v1` (default) | Temporal L1, normalized by B×T×d | Evaluation mode; clip after backward | Poly1 + attached KL; 1000/120 epochs; best validation macro-F1; target-logit gradients |
+| `connectivity-rollback-v1` (default; GPU pending) | Released layout and global L2 | Evaluation mode; clip after backward | Same SGT convergence repair |
+| `repaired-v1` (completed; TimeX regressed) | Temporal L1, normalized by B×T×d | Evaluation mode; clip after backward | Poly1 + attached KL; 1000/120 epochs; best validation macro-F1; target-logit gradients |
 | `legacy-control` | Released layout and global L2 | Released training behavior | Same convergence repair |
 | `connectivity-control` | Temporal L1 | Released training behavior | Same convergence repair |
 | `sgt-control` | Temporal L1 | Repaired training | Released 10 epochs, final checkpoint, masked-input attribution control |
@@ -39,6 +44,20 @@ and `--stage evaluate`; evaluation refuses stale training artifacts.
 Controls are diagnostic and cannot receive a `matched` status. The legacy
 control isolates the TimeX implementation; it still uses the predictor quality
 gate and is not an exact replay of the old failed run.
+
+The rollback deliberately restores the old connectivity behavior, including
+its known multivariate-axis defect. This is a controlled return to the weaker
+released objective, not a claim that the old formula matches the paper. The
+stronger temporal L1 implementation remains available under `repaired-v1` and
+`connectivity-control`. The new default also applies when directly invoking
+the two Table 2 `bc_model_ptype.py` scripts.
+
+Evidence for retaining the other changes: predictor retries recovered SeqComb-MV
+folds 3/4 to validation macro-F1 1.0; SGT LowVar AUPRC improved from 0.1436 to
+0.4149; artifact hashes and fold completion verified. SGT remains outside the
+three-metric tolerance, and the individual numerical effects of frozen-reference
+evaluation and clipping have not been isolated. The rollback is a hypothesis
+to test, not a guaranteed restoration of historical scores.
 
 TimeX keeps Table 6: 100 epochs, batch 64, AdamW lr 0.001 and weight decay
 0.001, r=0.5, GSAT weight 1, connectivity weight 2, explanation weight 2,
@@ -114,35 +133,41 @@ submission checkout needs its `.venv` and WinIT source; data defaults to
 `/beegfs/hahn/workspace/TimeX/dataset`. Override the persistent project root with
 `TIMEX_CLUSTER_PROJECT_DIR` when needed.
 
+Start with both datasets, fold 1, TimeX only:
+
 ```bash
-# TimeX controls: identical fold, seed, budget and validation selection.
-sbatch sj_timex_table2 --datasets seqcomb_mv --folds 1 --methods ours --protocol legacy-control
-sbatch sj_timex_table2 --datasets seqcomb_mv --folds 1 --methods ours --protocol connectivity-control
-
-# Combined repair, including fold 3 predictor recovery.
-sbatch sj_timex_table2 --datasets seqcomb_mv --folds 1,3 --methods ours
-
-# LowVar regression and baseline diagnosis.
-sbatch sj_timex_table2 --datasets lowvar --folds 1 --methods ours,cortx,sgt+grad
-
-# Small released SGT control, kept separate from repaired estimates.
-sbatch sj_timex_table2 --datasets all --folds 1 --methods sgt+grad --protocol sgt-control
+sbatch sj_timex_table2 --datasets all --folds 1 --methods ours
 ```
 
-After checking pilot logs for finite training and the validation gates, launch
-seed 42 with all five folds and all six methods. Replace the two archive paths
-with those of the **combined repair** and **LowVar** pilot jobs:
+That selects `connectivity-rollback-v1`. For a full legacy TimeX control
+(connectivity plus the original dropout/clipping behavior):
+
+```bash
+sbatch sj_timex_table2 --datasets all --folds 1 --methods ours --protocol legacy-control
+```
+
+The previous combined repair remains reproducible with `--protocol repaired-v1`;
+`--protocol connectivity-control` isolates temporal L1 with legacy training.
+Predictor retries and quality gates remain active for all protocols. No jobs
+are submitted by the assistant.
+
+After inspecting the rollback pilot, a full run using the **same protocol** can
+resume its archive (replace PILOT_JOB with the actual job ID):
 
 ```bash
 sbatch sj_timex_table2 --seed 42 \
-  --resume-from /beegfs/hahn/workspace/TimeX/cluster_runs/timex_table2_SEQ_PILOT_JOB \
-  --resume-from /beegfs/hahn/workspace/TimeX/cluster_runs/timex_table2_LOWVAR_PILOT_JOB
+  --resume-from /beegfs/hahn/workspace/TimeX/cluster_runs/timex_table2_PILOT_JOB
 ```
 
-Without pilot reuse, the complete command is `sbatch sj_timex_table2 --seed 42`.
-Do not alter hyperparameters or choose seeds based on test explanation metrics.
-If supported rows remain outside tolerance, run the affected dependency chains
-with **both** seeds 43 and 44 and report each seed separately, for example:
+The old job 21899369 belongs to `repaired-v1`; its TimeX checkpoints must not be
+relabelled as rollback checkpoints. Separate protocol directories and source
+checks conservatively retrain dependencies when they cannot be reused. A pilot
+in a new protocol can therefore train the reference predictor again, using the
+same predefined seeds and quality gate.
+
+If supported rows still miss tolerance after the training protocol has been
+assessed, run affected dependency chains with both seeds 43 and 44 and report
+both; do not choose the closest result:
 
 ```bash
 sbatch sj_timex_table2 --seeds "43 44" --datasets seqcomb_mv --methods ours
@@ -173,5 +198,5 @@ The summary CSV/Markdown includes all twelve published rows and each of the
 three metric differences, even when results are missing. Primary uncertainty is
 fold SE (`ddof=1`); `historical_pooled_standard_error` is separately labelled and
 uses the historical sample-pooled convention (`ddof=0`). A row is `matched` only
-with five complete, verified repaired folds, qualifying predictors, supported
+with five complete, verified folds of one declared reproduction protocol, qualifying predictors, supported
 provenance and all three differences ≤0.05. CoRTX remains `unresolved provenance`.

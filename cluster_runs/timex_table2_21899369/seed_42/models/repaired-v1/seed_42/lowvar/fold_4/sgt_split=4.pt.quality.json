@@ -1,0 +1,5 @@
+{
+  "validation_macro_f1": 0.9899959983993598,
+  "selected_epoch": 114,
+  "protocol": "poly1-kl-convergence-v1"
+}

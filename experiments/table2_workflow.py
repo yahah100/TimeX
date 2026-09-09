@@ -17,7 +17,12 @@ DATASETS = {
     "lowvar": ("LowVarDetect", "lowvardetect", 120),
 }
 METHODS = ("ours", "ig", "dyna", "winit", "cortx", "sgt+grad")
-PROTOCOLS = ("repaired-v1", "legacy-control", "connectivity-control", "sgt-control")
+REPRODUCTION_PROTOCOLS = ("repaired-v1", "connectivity-rollback-v1")
+PROTOCOLS = REPRODUCTION_PROTOCOLS + (
+    "legacy-control",
+    "connectivity-control",
+    "sgt-control",
+)
 
 
 def digest(path):
@@ -141,9 +146,15 @@ def run_stage(path, identity, command, log, args, enrich=None):
             old_logs
             / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f_") + log.name)
         )
-    write_json(Path(str(path) + ".run.json"), dict(identity=identity,
-               command=list(map(str, command)), git_revision=args.git_revision,
-               started_utc=datetime.now(timezone.utc).isoformat()))
+    write_json(
+        Path(str(path) + ".run.json"),
+        dict(
+            identity=identity,
+            command=list(map(str, command)),
+            git_revision=args.git_revision,
+            started_utc=datetime.now(timezone.utc).isoformat(),
+        ),
+    )
     with log.open("w") as handle:
         subprocess.run(
             list(map(str, command)),
@@ -167,7 +178,7 @@ def run_stage(path, identity, command, log, args, enrich=None):
     )
     # The quality record is part of the artifact's integrity guarantee.
     quality = (
-        Path(str(path).replace(".pt", ".quality.json"))
+        path.with_suffix(".quality.json")
         if identity["stage"] == "predictor"
         else Path(str(path) + ".quality.json")
     )
@@ -220,7 +231,11 @@ def aggregate(records, dataset, method, args):
         completion_status="complete" if complete else "partial",
         provenance_status="unresolved_multivariate_recipe"
         if method == "cortx"
-        else ("repaired" if args.protocol == "repaired-v1" else "diagnostic_control"),
+        else (
+            args.protocol
+            if args.protocol in REPRODUCTION_PROTOCOLS
+            else "diagnostic_control"
+        ),
         folds=folds,
         cross_validation=dict(n_folds=len(folds), metrics=metrics),
         pooled=dict(
@@ -238,7 +253,7 @@ def parse_args():
     p.add_argument("--methods", default=",".join(METHODS))
     p.add_argument("--folds", default="1,2,3,4,5")
     p.add_argument("--stage", choices=("all", "train", "evaluate"), default="all")
-    p.add_argument("--protocol", choices=PROTOCOLS, default="repaired-v1")
+    p.add_argument("--protocol", choices=PROTOCOLS, default="connectivity-rollback-v1")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--predictor-attempts", type=int, choices=range(1, 4), default=3)
     p.add_argument("--predictor-min-f1", type=float, default=0.95)
@@ -411,7 +426,8 @@ def main(args):
                         checkpoint = models / f"bc_full_split={fold}.pt"
                         cv = (
                             "legacy"
-                            if args.protocol == "legacy-control"
+                            if args.protocol
+                            in {"legacy-control", "connectivity-rollback-v1"}
                             else "temporal-l1-v1"
                         )
                         tv = (
@@ -547,7 +563,7 @@ def main(args):
                     complete = (
                         args.max_samples is None
                         and args.winit_epochs == 1000
-                        and args.protocol == "repaired-v1"
+                        and args.protocol in REPRODUCTION_PROTOCOLS
                     )
                     training_provenance = (
                         {}

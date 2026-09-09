@@ -101,7 +101,7 @@ def comparison_rows(results_dir, table):
                 for q in record.get("predictor_quality", [])
             )
             traceable = (
-                record.get("protocol") == "repaired-v1"
+                record.get("protocol") in {"repaired-v1", "connectivity-rollback-v1"}
                 and len(record.get("provenance", [])) == 5
                 and len(record.get("predictor_quality", [])) == 5
                 and qualified

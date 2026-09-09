@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="850" viewBox="0 0 1500 850" role="img" aria-labelledby="title desc">
+  <title id="title">Overview of the VQ-TimeX approach</title>
+  <desc id="desc">A two-branch architecture diagram in which a reference predictor and a masked-explanation model use the same vector-quantization codebook. The shared discrete representation replaces landmark-based model-behavior-consistency losses. Only label consistency connects the prediction outputs.</desc>
+  <defs>
+    <linearGradient id="predictorBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffafa"/>
+      <stop offset="1" stop-color="#fff2ef"/>
+    </linearGradient>
+    <linearGradient id="explainerBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffef8"/>
+      <stop offset="1" stop-color="#fff9dc"/>
+    </linearGradient>
+    <linearGradient id="codebookBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f0ff"/>
+      <stop offset="1" stop-color="#ebe4ff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#172033" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#263248"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#7457d9"/>
+    </marker>
+    <clipPath id="maskClip1"><rect x="503" y="523" width="132" height="32" rx="5"/></clipPath>
+    <clipPath id="maskClip2"><rect x="503" y="564" width="132" height="32" rx="5"/></clipPath>
+    <clipPath id="maskClip3"><rect x="503" y="605" width="132" height="32" rx="5"/></clipPath>
+  </defs>
+
+  <rect width="1500" height="850" fill="#ffffff"/>
+  <text x="750" y="48" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="26" font-weight="700" fill="#172033">Overview of the VQ-TimeX approach</text>
+  <text x="750" y="73" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="14" fill="#667085">Discrete, shared representations align predictive behavior without landmark matching</text>
+
+  <!-- Input time series -->
+  <g id="input-series" font-family="DejaVu Sans, Arial, sans-serif">
+    <text x="155" y="128" text-anchor="middle" font-size="15" font-weight="700" fill="#344054">Input time series</text>
+    <rect x="55" y="150" width="230" height="58" rx="9" fill="#ffffff" stroke="#aeb7c6" stroke-width="1.6"/>
+    <rect x="55" y="220" width="230" height="58" rx="9" fill="#ffffff" stroke="#aeb7c6" stroke-width="1.6"/>
+    <rect x="55" y="290" width="230" height="58" rx="9" fill="#ffffff" stroke="#aeb7c6" stroke-width="1.6"/>
+    <text x="24" y="184" font-family="serif" font-size="21" font-style="italic" font-weight="700" fill="#172033">xᵢ</text>
+    <text x="24" y="254" font-family="serif" font-size="21" font-style="italic" font-weight="700" fill="#172033">xⱼ</text>
+    <text x="24" y="324" font-family="serif" font-size="21" font-style="italic" font-weight="700" fill="#172033">xₖ</text>
+    <path d="M67 181 C82 166,92 193,108 178 S132 156,144 181 S164 164,176 179 S195 168,210 179 S240 166,273 188" fill="none" stroke="#79a85a" stroke-width="4" stroke-linecap="round"/>
+    <path d="M67 258 C87 255,98 241,119 244 S145 264,165 254 S183 230,195 257 S209 232,220 254 S239 241,252 250 S266 241,274 246" fill="none" stroke="#f04463" stroke-width="4" stroke-linecap="round"/>
+    <path d="M67 326 C86 320,99 303,117 315 S141 337,163 330 S190 319,208 332 S225 307,236 326 S246 302,257 323 S269 306,275 328" fill="none" stroke="#168be8" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- Branch panels -->
+  <g id="panels" font-family="DejaVu Sans, Arial, sans-serif">
+    <rect x="350" y="100" width="1090" height="250" rx="18" fill="url(#predictorBg)" stroke="#d6a39a" stroke-width="1.8" filter="url(#shadow)"/>
+    <rect x="350" y="475" width="1090" height="270" rx="18" fill="url(#explainerBg)" stroke="#dcc867" stroke-width="1.8" filter="url(#shadow)"/>
+    <rect x="370" y="116" width="184" height="33" rx="16" fill="#fbd7d1"/>
+    <text x="462" y="138" text-anchor="middle" font-size="16" font-weight="700" fill="#713b32">Reference predictor</text>
+    <rect x="370" y="491" width="185" height="33" rx="16" fill="#ffeb9a"/>
+    <text x="462" y="513" text-anchor="middle" font-size="16" font-weight="700" fill="#6c5611">VQ-TimeX explainer</text>
+  </g>
+
+  <!-- Incoming arrows -->
+  <path d="M285 249 H322 Q337 249 337 234 V218 Q337 205 350 205" fill="none" stroke="#263248" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <path d="M170 348 V421 Q170 441 191 441 H320 Q337 441 337 458 V590 Q337 606 350 606" fill="none" stroke="#263248" stroke-width="2.4" marker-end="url(#arrow)"/>
+
+  <!-- Reference predictor branch -->
+  <g id="reference-branch" font-family="DejaVu Sans, Arial, sans-serif">
+    <rect x="395" y="180" width="72" height="91" rx="11" fill="#ef8174"/>
+    <text x="431" y="221" text-anchor="middle" font-family="serif" font-size="27" font-style="italic" font-weight="700" fill="#ffffff">G</text>
+    <text x="431" y="245" text-anchor="middle" font-size="12" fill="#ffffff">encoder</text>
+    <path d="M467 225 H505" fill="none" stroke="#263248" stroke-width="2.3" marker-end="url(#arrow)"/>
+
+    <path d="M523 187 C542 158,589 154,624 169 C661 150,704 171,706 204 C732 225,704 258,675 258 C647 283,607 270,591 253 C557 264,522 245,529 219 C514 211,514 198,523 187 Z" fill="#ffe1dc" stroke="#bd7469" stroke-width="1.7"/>
+    <text x="613" y="192" text-anchor="middle" font-size="12" font-weight="700" fill="#83443b">continuous latent space</text>
+    <circle cx="558" cy="222" r="8" fill="#e94c64"/>
+    <circle cx="618" cy="236" r="8" fill="#168be8"/>
+    <circle cx="679" cy="213" r="8" fill="#69a34d"/>
+    <path d="M558 222 L618 236 L679 213" fill="none" stroke="#9b6d66" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <text x="550" y="243" font-family="serif" font-size="15" font-style="italic" fill="#172033">zᵢ</text>
+    <text x="611" y="258" font-family="serif" font-size="15" font-style="italic" fill="#172033">zⱼ</text>
+    <text x="680" y="237" font-family="serif" font-size="15" font-style="italic" fill="#172033">zₖ</text>
+    <path d="M710 225 H750" fill="none" stroke="#263248" stroke-width="2.3" marker-end="url(#arrow)"/>
+
+    <rect x="755" y="184" width="78" height="83" rx="12" fill="#785bd8"/>
+    <text x="794" y="218" text-anchor="middle" font-size="21" font-weight="700" fill="#ffffff">Q<tspan baseline-shift="sub" font-size="13">C</tspan></text>
+    <text x="794" y="242" text-anchor="middle" font-size="11" fill="#ffffff">nearest code</text>
+    <path d="M833 225 H869" fill="none" stroke="#263248" stroke-width="2.3" marker-end="url(#arrow)"/>
+
+    <g id="reference-discrete-codes">
+      <rect x="877" y="188" width="38" height="38" rx="9" fill="#ffd9df" stroke="#e94c64" stroke-width="1.7"/>
+      <rect x="889" y="226" width="38" height="38" rx="9" fill="#d9edff" stroke="#168be8" stroke-width="1.7"/>
+      <rect x="913" y="196" width="38" height="38" rx="9" fill="#e4f2d9" stroke="#69a34d" stroke-width="1.7"/>
+      <text x="915" y="289" text-anchor="middle" font-family="serif" font-size="16" font-style="italic" fill="#344054">z<tspan baseline-shift="sub" font-size="11">q</tspan></text>
+    </g>
+    <path d="M954 225 H987" fill="none" stroke="#263248" stroke-width="2.3" marker-end="url(#arrow)"/>
+    <rect x="993" y="180" width="72" height="91" rx="11" fill="#ef8174"/>
+    <text x="1029" y="221" text-anchor="middle" font-family="serif" font-size="27" font-style="italic" font-weight="700" fill="#ffffff">F</text>
+    <text x="1029" y="245" text-anchor="middle" font-size="12" fill="#ffffff">classifier</text>
+    <path d="M1065 225 H1100" fill="none" stroke="#263248" stroke-width="2.3" marker-end="url(#arrow)"/>
+    <text x="1167" y="166" text-anchor="middle" font-family="serif" font-size="21" font-style="italic" fill="#172033">ŷ</text>
+    <g fill="#344054">
+      <rect x="1110" y="182" width="84" height="10" rx="2"/><rect x="1110" y="197" width="47" height="10" rx="2"/><rect x="1110" y="212" width="29" height="10" rx="2"/>
+      <rect x="1211" y="182" width="34" height="10" rx="2"/><rect x="1211" y="197" width="75" height="10" rx="2"/><rect x="1211" y="212" width="43" height="10" rx="2"/>
+      <rect x="1310" y="182" width="46" height="10" rx="2"/><rect x="1310" y="197" width="27" height="10" rx="2"/><rect x="1310" y="212" width="81" height="10" rx="2"/>
+    </g>
+    <text x="1152" y="250" text-anchor="middle" font-size="11" fill="#667085">sample i</text>
+    <text x="1248" y="250" text-anchor="middle" font-size="11" fill="#667085">sample j</text>
+    <text x="1350" y="250" text-anchor="middle" font-size="11" fill="#667085">sample k</text>
+  </g>
+
+  <!-- Shared codebook -->
+  <g id="shared-codebook" font-family="DejaVu Sans, Arial, sans-serif" filter="url(#shadow)">
+    <rect x="690" y="373" width="336" height="84" rx="16" fill="url(#codebookBg)" stroke="#856bdc" stroke-width="2"/>
+    <text x="714" y="399" font-size="14" font-weight="700" fill="#493696">Shared codebook C</text>
+    <text x="714" y="424" font-size="12" fill="#62558f">learned discrete representations</text>
+    <g>
+      <rect x="895" y="391" width="26" height="26" rx="6" fill="#ffd9df" stroke="#e94c64" stroke-width="1.5"/>
+      <rect x="927" y="391" width="26" height="26" rx="6" fill="#d9edff" stroke="#168be8" stroke-width="1.5"/>
+      <rect x="959" y="391" width="26" height="26" rx="6" fill="#e4f2d9" stroke="#69a34d" stroke-width="1.5"/>
+      <rect x="991" y="391" width="18" height="26" rx="6" fill="#ffe9ad" stroke="#d69d13" stroke-width="1.5"/>
+    </g>
+    <text x="948" y="441" text-anchor="middle" font-size="11" fill="#7457d9">implicit prototypes</text>
+  </g>
+  <path d="M794 267 V351 Q794 365 808 373" fill="none" stroke="#7457d9" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrowPurple)"/>
+  <path d="M936 457 Q950 467 950 482 V548" fill="none" stroke="#7457d9" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrowPurple)"/>
+  <rect x="1049" y="378" width="241" height="74" rx="14" fill="#f5f2ff" stroke="#b4a6e8" stroke-width="1.5"/>
+  <text x="1169" y="400" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#493696">Alignment is built into</text>
+  <text x="1169" y="417" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="700" fill="#493696">the representation</text>
+  <text x="1169" y="439" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="11.5" fill="#62558f">No landmarks · No MBC objectives</text>
+
+  <!-- Explanation branch -->
+  <g id="explanation-branch" font-family="DejaVu Sans, Arial, sans-serif">
+    <rect x="378" y="551" width="68" height="105" rx="11" fill="#efc94f"/>
+    <text x="412" y="596" text-anchor="middle" font-family="serif" font-size="24" font-style="italic" font-weight="700" fill="#5a4704">H<tspan baseline-shift="super" font-size="14">E</tspan></text>
+    <text x="412" y="622" text-anchor="middle" font-size="11" fill="#5a4704">mask</text>
+    <text x="412" y="637" text-anchor="middle" font-size="11" fill="#5a4704">generator</text>
+    <path d="M446 603 H486" fill="none" stroke="#263248" stroke-width="2.2" marker-end="url(#arrow)"/>
+
+    <text x="569" y="544" text-anchor="middle" font-size="12" font-weight="700" fill="#6c5611">masks E(x)</text>
+    <g>
+      <rect x="503" y="523" width="132" height="32" rx="5" fill="#f8fafc" stroke="#aeb7c6"/>
+      <rect x="503" y="564" width="132" height="32" rx="5" fill="#f8fafc" stroke="#aeb7c6"/>
+      <rect x="503" y="605" width="132" height="32" rx="5" fill="#f8fafc" stroke="#aeb7c6"/>
+      <rect x="539" y="521" width="31" height="36" fill="#7457d9" opacity="0.23" clip-path="url(#maskClip1)"/>
+      <rect x="572" y="562" width="22" height="36" fill="#7457d9" opacity="0.28" clip-path="url(#maskClip2)"/>
+      <rect x="598" y="603" width="27" height="36" fill="#7457d9" opacity="0.27" clip-path="url(#maskClip3)"/>
+      <path d="M509 541 C523 527,532 549,545 538 S562 527,575 541 S598 530,628 545" fill="none" stroke="#79a85a" stroke-width="2.5"/>
+      <path d="M509 584 C528 582,536 570,552 578 S566 590,579 581 S589 569,598 584 S616 573,629 580" fill="none" stroke="#f04463" stroke-width="2.5"/>
+      <path d="M509 625 C524 619,532 611,544 620 S559 632,576 627 S588 617,602 628 S617 611,630 625" fill="none" stroke="#168be8" stroke-width="2.5"/>
+    </g>
+    <path d="M635 603 H668" fill="none" stroke="#263248" stroke-width="2.2" marker-end="url(#arrow)"/>
+    <text x="714" y="544" text-anchor="middle" font-size="12" font-weight="700" fill="#6c5611">masked x<tspan baseline-shift="super" font-size="9">m</tspan></text>
+    <g>
+      <rect x="675" y="551" width="79" height="105" rx="10" fill="#ffffff" stroke="#b8bdc8"/>
+      <path d="M684 577 C696 565,702 585,715 574" fill="none" stroke="#79a85a" stroke-width="2.8"/>
+      <path d="M725 617 C735 607,742 625,748 613" fill="none" stroke="#f04463" stroke-width="2.8"/>
+      <path d="M686 641 C699 632,706 648,719 637" fill="none" stroke="#168be8" stroke-width="2.8"/>
+      <path d="M716 574 H746 M683 617 H724 M720 637 H747" stroke="#d0d5dd" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+    <path d="M754 603 H783" fill="none" stroke="#263248" stroke-width="2.2" marker-end="url(#arrow)"/>
+    <rect x="789" y="551" width="68" height="105" rx="11" fill="#efc94f"/>
+    <text x="823" y="596" text-anchor="middle" font-family="serif" font-size="24" font-style="italic" font-weight="700" fill="#5a4704">G<tspan baseline-shift="super" font-size="14">E</tspan></text>
+    <text x="823" y="622" text-anchor="middle" font-size="11" fill="#5a4704">explanation</text>
+    <text x="823" y="637" text-anchor="middle" font-size="11" fill="#5a4704">encoder</text>
+    <path d="M857 603 H910" fill="none" stroke="#263248" stroke-width="2.2" marker-end="url(#arrow)"/>
+    <rect x="916" y="552" width="68" height="103" rx="12" fill="#785bd8"/>
+    <text x="950" y="594" text-anchor="middle" font-size="21" font-weight="700" fill="#ffffff">Q<tspan baseline-shift="sub" font-size="13">C</tspan></text>
+    <text x="950" y="618" text-anchor="middle" font-size="11" fill="#ffffff">nearest</text>
+    <text x="950" y="633" text-anchor="middle" font-size="11" fill="#ffffff">code</text>
+    <path d="M984 603 H1013" fill="none" stroke="#263248" stroke-width="2.2" marker-end="url(#arrow)"/>
+    <g id="explanation-discrete-codes">
+      <rect x="1020" y="565" width="34" height="34" rx="8" fill="#ffd9df" stroke="#e94c64" stroke-width="1.6"/>
+      <rect x="1031" y="601" width="34" height="34" rx="8" fill="#d9edff" stroke="#168be8" stroke-width="1.6"/>
+      <rect x="1052" y="573" width="34" height="34" rx="8" fill="#e4f2d9" stroke="#69a34d" stroke-width="1.6"/>
+      <text x="1052" y="666" text-anchor="middle" font-family="serif" font-size="15" font-style="italic" fill="#344054">z<tspan baseline-shift="sub" font-size="10">q</tspan><tspan baseline-shift="super" font-size="10">E</tspan></text>
+    </g>
+    <path d="M1089 603 H1112" fill="none" stroke="#263248" stroke-width="2.2" marker-end="url(#arrow)"/>
+    <rect x="1118" y="551" width="68" height="105" rx="11" fill="#efc94f"/>
+    <text x="1152" y="596" text-anchor="middle" font-family="serif" font-size="24" font-style="italic" font-weight="700" fill="#5a4704">F<tspan baseline-shift="super" font-size="14">E</tspan></text>
+    <text x="1152" y="622" text-anchor="middle" font-size="11" fill="#5a4704">surrogate</text>
+    <text x="1152" y="637" text-anchor="middle" font-size="11" fill="#5a4704">classifier</text>
+    <path d="M1186 603 H1219" fill="none" stroke="#263248" stroke-width="2.2" marker-end="url(#arrow)"/>
+    <text x="1312" y="544" text-anchor="middle" font-family="serif" font-size="21" font-style="italic" fill="#172033">ŷ<tspan baseline-shift="super" font-size="13">E</tspan></text>
+    <g fill="#344054">
+      <rect x="1229" y="565" width="72" height="9" rx="2"/><rect x="1229" y="579" width="41" height="9" rx="2"/><rect x="1229" y="593" width="25" height="9" rx="2"/>
+      <rect x="1320" y="565" width="30" height="9" rx="2"/><rect x="1320" y="579" width="64" height="9" rx="2"/><rect x="1320" y="593" width="38" height="9" rx="2"/>
+      <rect x="1229" y="622" width="40" height="9" rx="2"/><rect x="1229" y="636" width="24" height="9" rx="2"/><rect x="1229" y="650" width="70" height="9" rx="2"/>
+    </g>
+  </g>
+
+  <!-- Label consistency -->
+  <g id="label-consistency" font-family="DejaVu Sans, Arial, sans-serif">
+    <path d="M1392 225 H1452 V386" fill="none" stroke="#263248" stroke-width="2"/>
+    <path d="M1392 612 H1452 V448" fill="none" stroke="#263248" stroke-width="2"/>
+    <rect x="1298" y="386" width="188" height="62" rx="14" fill="#ffffff" stroke="#5d6b82" stroke-width="1.7"/>
+    <text x="1392" y="410" text-anchor="middle" font-size="12" font-weight="700" fill="#344054">Label consistency</text>
+    <text x="1392" y="433" text-anchor="middle" font-family="serif" font-size="16" font-style="italic" fill="#172033">ℒ<tspan baseline-shift="sub" font-size="11">LC</tspan>(ŷ, ŷ<tspan baseline-shift="super" font-size="11">E</tspan>)</text>
+  </g>
+
+  <!-- Legend -->
+  <g id="legend" font-family="DejaVu Sans, Arial, sans-serif">
+    <circle cx="462" cy="785" r="6" fill="#ef8174"/><text x="476" y="790" font-size="12" fill="#667085">reference model</text>
+    <circle cx="594" cy="785" r="6" fill="#efc94f"/><text x="608" y="790" font-size="12" fill="#667085">explanation model</text>
+    <circle cx="744" cy="785" r="6" fill="#785bd8"/><text x="758" y="790" font-size="12" fill="#667085">shared quantization</text>
+    <text x="750" y="826" text-anchor="middle" font-size="13" fill="#667085">Shared code assignments provide dataset-level concepts directly in the learned representation.</text>
+  </g>
+</svg>

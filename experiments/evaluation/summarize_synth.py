@@ -60,6 +60,7 @@ FIELDNAMES = (
     "difference",
     "within_tolerance",
     "protocol",
+    "recipe",
     "base_seed",
     "n_folds",
     "completion_status",
@@ -97,11 +98,12 @@ def comparison_rows(results_dir, table):
                 if k in metrics
             ]
             qualified = all(
-                q.get("qualified") and q.get("validation_macro_f1", 0) >= 0.95
+                not q.get("required", True)
+                or (q.get("qualified") and q.get("validation_macro_f1", 0) >= 0.95)
                 for q in record.get("predictor_quality", [])
             )
             traceable = (
-                record.get("protocol") in {"repaired-v1", "connectivity-rollback-v1"}
+                record.get("protocol") in {"selected-v1"}
                 and len(record.get("provenance", [])) == 5
                 and len(record.get("predictor_quality", [])) == 5
                 and qualified
@@ -142,6 +144,7 @@ def comparison_rows(results_dir, table):
                         protocol=record.get(
                             "protocol", "historical" if record else "pending"
                         ),
+                        recipe=record.get("recipe", "historical"),
                         base_seed=record.get("base_seed"),
                         n_folds=cv.get("n_folds", 0),
                         completion_status=completion,
@@ -164,7 +167,7 @@ def main(results_dir, table):
         "",
         "Primary uncertainty is SE across fold means. Historical pooled SE is labelled separately in CSV.",
         "",
-        "| Dataset | Method | Metric | Mean ± fold SE | Published | Difference | Protocol / seed | Folds | Row status |",
+        "| Dataset | Method | Metric | Mean ± fold SE | Published | Difference | Recipe / seed | Folds | Row status |",
         "|---|---|---|---:|---:|---:|---|---:|---|",
     ]
     for row in rows:
@@ -180,7 +183,7 @@ def main(results_dir, table):
         )
         difference = "—" if delta is None else f"{delta:+.4f}"
         md.append(
-            f'| {row["dataset"]} | {row["method"]} | {row["metric"]} | {value} | {row["published"]:.4f} | {difference} | {row["protocol"]} / {row["base_seed"]} | {row["n_folds"]} | {row["row_status"]} |'
+            f'| {row["dataset"]} | {row["method"]} | {row["metric"]} | {value} | {row["published"]:.4f} | {difference} | {row["recipe"]} / {row["base_seed"]} | {row["n_folds"]} | {row["row_status"]} |'
         )
     (results_dir / f"table{table}_summary.md").write_text("\n".join(md) + "\n")
 

@@ -77,8 +77,7 @@ class TimeXModel(nn.Module):
         loss_weight_dict=default_loss_weights,
         tau=1.0,
         masktoken_stats=None,
-        connectivity_version="legacy",
-        training_version="legacy",
+        reference_eval: bool = False,
         training_loss_weights=None,
     ):
         super(TimeXModel, self).__init__()
@@ -95,10 +94,7 @@ class TimeXModel(nn.Module):
 
         self.ablation_parameters = ablation_parameters
         self.loss_weight_dict = dict(loss_weight_dict)
-        self.connectivity_version = connectivity_version
-        if training_version not in {"legacy", "repaired-v1"}:
-            raise ValueError(f"Unknown training version: {training_version}")
-        self.training_version = training_version
+        self.reference_eval = reference_eval
         self.training_loss_weights = training_loss_weights
 
         # Holds main encoder:
@@ -175,7 +171,7 @@ class TimeXModel(nn.Module):
 
         # Setup loss functions:
         self.gsat_loss_fn = GSATLoss(r=self.gsat_r)
-        self.connected_loss = ConnectLoss(connectivity_version)
+        self.connected_loss = ConnectLoss()
 
         self.set_config()
 
@@ -379,7 +375,7 @@ class TimeXModel(nn.Module):
 
     def train(self, mode=True):
         super().train(mode)
-        if self.training_version == "repaired-v1" and not any(
+        if self.reference_eval and not any(
             p.requires_grad for p in self.encoder_main.parameters()
         ):
             self.encoder_main.eval()
@@ -391,14 +387,9 @@ class TimeXModel(nn.Module):
 
     def loss_components(self, output_dict):
         mask = output_dict["mask_logits"]
-        temporal_mask = (
-            self.mask_probabilities_btf(mask)
-            if self.connectivity_version == "temporal-l1-v1"
-            else mask
-        )
         return {
             "gsat": self.gsat_loss_fn(mask),
-            "connect": self.connected_loss(temporal_mask),
+            "connect": self.connected_loss(mask),
         }
 
     def compute_loss(self, output_dict):
@@ -419,8 +410,7 @@ class TimeXModel(nn.Module):
             "n_prototypes": self.n_prototypes,
             "gsat_r": self.gsat_r,
             "loss_weight_dict": dict(self.loss_weight_dict),
-            "connectivity_version": self.connectivity_version,
-            "training_version": self.training_version,
+            "reference_eval": self.reference_eval,
             "training_loss_weights": self.training_loss_weights,
             "transformer_args": self.transformer_args,
             "ablation_parameters": self.ablation_parameters,

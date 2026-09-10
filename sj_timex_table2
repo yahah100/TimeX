@@ -24,8 +24,8 @@ usage() {
     cat <<'EOF'
 Usage: sbatch sj_timex_table2 [--seed N | --seeds "N ..."] [runner options]
 
-Accepts --datasets, --methods, --folds, --protocol, --stage, --winit-epochs,
---predictor-attempts, --predictor-min-f1, --max-samples and --dry-run.
+Accepts --datasets, --methods, --folds, --stage, --winit-epochs,
+--max-samples and --dry-run. Recipes are selected automatically.
 --resume-from PATH may be repeated; PATH is an archived timex_table2_<job-id>.
 
 Run both Table 2 datasets, all five folds, and all six methods on one GPU.
@@ -40,7 +40,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --seed|--seeds) [[ $# -ge 2 ]] || die "$1 requires a value"; SEEDS="$2"; shift 2 ;;
         --resume-from) [[ $# -ge 2 ]] || die "$1 requires a value"; RESUME_FROM+=("$2"); shift 2 ;;
-        --datasets|--methods|--folds|--protocol|--stage|--winit-epochs|--predictor-attempts|--predictor-min-f1|--max-samples)
+        --datasets|--methods|--folds|--stage|--winit-epochs|--max-samples)
             [[ $# -ge 2 ]] || die "$1 requires a value"; RUN_ARGS+=("$1" "$2"); shift 2 ;;
         --dry-run) RUN_ARGS+=("$1"); shift ;;
         -h|--help) usage; exit 0 ;;
@@ -105,6 +105,7 @@ for resume in "${RESUME_FROM[@]}"; do require_dir "$resume"; done
 # Preserve the submitted implementation alongside numerical artifacts.
 mkdir -p "$ARCHIVE_DIR/source"
 rsync -a --exclude='.git/' --exclude='.venv/' --exclude='dataset/' \
+    --exclude='datasets/' --exclude='logs/' \
     --exclude='results/' --exclude='cluster_runs/' --exclude='timex_*/' \
     --exclude='timex_table2_*/' --exclude='*.pt' --exclude='*.out' \
     --exclude='__pycache__/' "$SUBMIT_DIR/" "$ARCHIVE_DIR/source/"
@@ -125,12 +126,7 @@ for seed in $SEEDS; do
     ACTIVE_SEED_DIR="$seed_root"
     ACTIVE_ARCHIVE_DIR="$ARCHIVE_DIR/seed_$seed"
     mkdir -p "$repo_dir" "$seed_root/results"
-    rsync -a --exclude='.git/' --exclude='.venv/' --exclude='dataset/' \
-        --exclude='logs/' --exclude='results/' --exclude='cluster_runs/' \
-        --exclude='timex_*/' --exclude='timex_table2_*/' \
-        --exclude='*.pt' --exclude='*.out' --exclude='__pycache__/' \
-        --exclude='experiments/seqcomb_mv/models/' \
-        --exclude='experiments/lowvardetect/models/' "$SUBMIT_DIR/" "$repo_dir/"
+    rsync -a "$ARCHIVE_DIR/source/" "$repo_dir/"
     for resume in "${RESUME_FROM[@]}"; do
         [[ ! -d "$resume/seed_$seed/models" ]] || rsync -a "$resume/seed_$seed/models/" "$seed_root/models/"
         [[ ! -d "$resume/seed_$seed/results" ]] || rsync -a "$resume/seed_$seed/results/" "$seed_root/results/"

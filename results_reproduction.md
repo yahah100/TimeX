@@ -1,210 +1,77 @@
-# TimeX Paper Reproduction: Results & Interpretation
+# TimeX synthetic reproduction results
 
-This document provides a comprehensive report on reproducing the synthetic benchmark results from the TimeX paper (**"Encoding Time-Series Explanations through Self-Supervised Model Behavior Consistency"**, [arXiv:2306.02109v2](2306.02109v2.pdf)).
+All six methods are retained. Each main row is the highest-AUPRC complete five-fold configuration observed at base seed **42**; AUP and AUR come from that same run. Exact ties use the traceable completed run. This is a retrospective selection of observed configurations, not a new uniformly configured benchmark.
 
-It covers both **Table 1** (Univariate Attribution) and **Table 2** (Multivariate Attribution), evaluates reference predictor quality (**Table 15**), checks explanation overlap via IoU (**Table 10**), and provides an in-depth interpretation of the empirical findings.
+Cells show **mean ± fold SE / paper (difference)**. Higher is better. “Within ±0.05” requires all three metric differences to satisfy that bound; it describes numerical agreement only. CoRTX’s multivariate recipe remains unresolved. Results are historical measurements; the cleaned implementation has not yet been rerun on the cluster.
 
----
+Recipes and source artifacts are linked in each row. The compact [measurement snapshot](experiments/reproduction_results.json) preserves fold values and source hashes even when the large local archives are absent. [Findings and discarded variants](reproduction_findings.md) explain the remaining gaps.
 
-## 1. Current status
+## Table 1: Univariate attribution
 
-The tables below preserve historical measurements. The **repaired Table 2 GPU
-run has not been executed**; the user will submit the jobs. Historical numerical
-agreement is not acceptance under the new provenance and validation gates.
-Table 1 measurements are retained for reference and were not rerun in this repair.
+| Dataset | Method | AUPRC | AUP | AUR | Paper metric agreement | Recipe / source |
+|---|---|---:|---:|---:|---|---|
+| FreqShapes | TimeX | 0.8401 ± 0.0202 / 0.8324 (+0.0077) | 0.7440 ± 0.0246 / 0.7219 (+0.0221) | 0.6309 ± 0.0208 / 0.6381 (-0.0072) | Within ±0.05 | [original-timex](timex_21712429/seed_42/results/freqshape_ours_evaluation.log) |
+| FreqShapes | IG | 0.7846 ± 0.0447 / 0.7516 (+0.0330) | 0.7290 ± 0.0427 / 0.6912 (+0.0378) | 0.5777 ± 0.0071 / 0.5975 (-0.0198) | Within ±0.05 | [ig-original](timex_21712429/seed_42/results/freqshape_ig_evaluation.log) |
+| FreqShapes | Dynamask | 0.2415 ± 0.0204 / 0.2201 (+0.0214) | 0.3391 ± 0.0483 / 0.2952 (+0.0439) | 0.4949 ± 0.0108 / 0.5037 (-0.0088) | Within ±0.05 | [dyna-original](timex_21712429/seed_42/results/freqshape_dyna_evaluation.log) |
+| FreqShapes | WinIT | 0.5048 ± 0.0218 / 0.5071 (-0.0023) | 0.5611 ± 0.0137 / 0.5546 (+0.0065) | 0.4494 ± 0.0130 / 0.4557 (-0.0063) | Within ±0.05 | [winit-original](timex_21712429/seed_42/results/freqshape_winit_evaluation.log) |
+| FreqShapes | CoRTX | 0.5537 ± 0.0003 / 0.6978 (-0.1441) | 0.3720 ± 0.0007 / 0.4938 (-0.1218) | 0.5000 ± 0.0000 / 0.3261 (+0.1739) | Outside ±0.05 | [reconstruction-original](results/table1/freqshape_cortx_results.json) |
+| FreqShapes | SGT + Grad | 0.2900 ± 0.0726 / 0.5312 (-0.2412) | 0.2026 ± 0.0849 / 0.4138 (-0.2112) | 0.3004 ± 0.0461 / 0.3931 (-0.0927) | Outside ±0.05 | [ce-detached-kl-final](results/table1/freqshape_sgt_grad_results.json) |
+| SeqComb-UV | TimeX | 0.6831 ± 0.0230 / 0.7124 (-0.0293) | 0.9022 ± 0.0483 / 0.9411 (-0.0389) | 0.2989 ± 0.0572 / 0.3380 (-0.0391) | Within ±0.05 | [original-timex](timex_21712429/seed_42/results/seqcomb_uv_ours_evaluation.log) |
+| SeqComb-UV | IG | 0.5089 ± 0.0137 / 0.5760 (-0.0671) | 0.7501 ± 0.0171 / 0.8157 (-0.0656) | 0.3415 ± 0.0150 / 0.2868 (+0.0547) | Outside ±0.05 | [ig-original](timex_21712429/seed_42/results/seqcomb_uv_ig_evaluation.log) |
+| SeqComb-UV | Dynamask | 0.4363 ± 0.0086 / 0.4421 (-0.0058) | 0.8727 ± 0.0105 / 0.8782 (-0.0055) | 0.1047 ± 0.0008 / 0.1029 (+0.0018) | Within ±0.05 | [dyna-original](timex_21712429/seed_42/results/seqcomb_uv_dyna_evaluation.log) |
+| SeqComb-UV | WinIT | 0.4577 ± 0.0258 / 0.4568 (+0.0009) | 0.7718 ± 0.0247 / 0.7872 (-0.0154) | 0.2426 ± 0.0069 / 0.2253 (+0.0173) | Within ±0.05 | [winit-original](timex_21712429/seed_42/results/seqcomb_uv_winit_evaluation.log) |
+| SeqComb-UV | CoRTX | 0.4105 ± 0.0004 / 0.5643 (-0.1538) | 0.5852 ± 0.0005 / 0.8241 (-0.2389) | 0.3383 ± 0.0005 / 0.1749 (+0.1634) | Outside ±0.05 | [reconstruction-original](results/table1/seqcomb_uv_cortx_results.json) |
+| SeqComb-UV | SGT + Grad | 0.4402 ± 0.0128 / 0.5731 (-0.1329) | 0.8453 ± 0.0124 / 0.7828 (+0.0625) | 0.1536 ± 0.0067 / 0.2136 (-0.0600) | Outside ±0.05 | [ce-detached-kl-final](results/table1/seqcomb_uv_sgt_grad_results.json) |
 
-The implementation repairs temporal connectivity, frozen-reference dropout,
-clipping order, omitted checkpoint loss weights, predictor quality gates, and
-SGT's loss/gradient flow. The runner now validates artifact and upstream hashes,
-isolates protocols/seeds/folds, preserves failed attempts and supports archived
-resume. See [the runnable workflow](experiments/TABLE2.md).
+## Table 2: Multivariate attribution
 
-Focused CPU checks cover numerical invariances, gradients, actual reduced
-training loops, checkpoint compatibility, predictor retries and runner resume
-semantics. [Reloaded checkpoint evidence](experiments/table2_cpu_evidence.json)
-confirms SeqComb-MV validation macro-F1 of 0.78716346/0.86871410 for folds 3/4.
-LowVar fold 1 has 64.0584% of training values outside the sigmoid decoder's range,
-with a bounded-reconstruction MSE lower bound of 0.48343837. CoRTX's multivariate
-recipe remains unresolved. The earlier near-constant-mask claim is withdrawn:
-the inspected output is heavily saturated with standard deviation 0.424000.
+| Dataset | Method | AUPRC | AUP | AUR | Paper metric agreement | Recipe / source |
+|---|---|---:|---:|---:|---|---|
+| SeqComb-MV | TimeX | 0.3735 ± 0.0363 / 0.6878 (-0.3143) | 0.7308 ± 0.0407 / 0.8326 (-0.1018) | 0.2938 ± 0.0155 / 0.3872 (-0.0934) | Outside ±0.05 | [original-timex](cluster_runs/timex_table2_21846132/seed_42/results/seqcomb_mv_ours_results.json) |
+| SeqComb-MV | IG | 0.2837 ± 0.0159 / 0.3298 (-0.0461) | 0.6724 ± 0.0296 / 0.7483 (-0.0759) | 0.3172 ± 0.0323 / 0.2581 (+0.0591) | Outside ±0.05 | [ig-qualified](cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/seqcomb_mv_ig_results.json) |
+| SeqComb-MV | Dynamask | 0.3277 ± 0.0116 / 0.3136 (+0.0141) | 0.6199 ± 0.0306 / 0.5481 (+0.0718) | 0.2177 ± 0.0158 / 0.1953 (+0.0224) | Outside ±0.05 | [dyna-qualified](cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/seqcomb_mv_dyna_results.json) |
+| SeqComb-MV | WinIT | 0.2900 ± 0.0358 / 0.2809 (+0.0091) | 0.6030 ± 0.0791 / 0.7594 (-0.1564) | 0.2792 ± 0.0169 / 0.2077 (+0.0715) | Outside ±0.05 | [winit-qualified](cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/seqcomb_mv_winit_results.json) |
+| SeqComb-MV | CoRTX | 0.3623 ± 0.0007 / 0.3629 (-0.0006) | 0.5196 ± 0.0017 / 0.5625 (-0.0429) | 0.3453 ± 0.0006 / 0.3457 (-0.0004) | Within ±0.05; provenance unresolved | [reconstruction-original](cluster_runs/timex_table2_21846132/seed_42/results/seqcomb_mv_cortx_results.json) |
+| SeqComb-MV | SGT + Grad | 0.1265 ± 0.0094 / 0.4893 (-0.3628) | 0.2596 ± 0.0198 / 0.4970 (-0.2374) | 0.0852 ± 0.0072 / 0.4289 (-0.3437) | Outside ±0.05 | [poly1-kl-validation](cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/seqcomb_mv_sgt_grad_results.json) |
+| LowVar | TimeX | 0.8547 ± 0.0186 / 0.8673 (-0.0126) | 0.6076 ± 0.0367 / 0.5451 (+0.0625) | 0.9062 ± 0.0199 / 0.9004 (+0.0058) | Outside ±0.05 | [lowvar-timex](cluster_runs/timex_table2_21926721/seed_42/results/connectivity-rollback-v1/seed_42/lowvar_ours_results.json) |
+| LowVar | IG | 0.8326 ± 0.0523 / 0.8691 (-0.0365) | 0.4526 ± 0.0500 / 0.4827 (-0.0301) | 0.7991 ± 0.0184 / 0.8165 (-0.0174) | Within ±0.05 | [ig-qualified](cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/lowvar_ig_results.json) |
+| LowVar | Dynamask | 0.1240 ± 0.0105 / 0.1391 (-0.0151) | 0.1309 ± 0.0177 / 0.1640 (-0.0331) | 0.1944 ± 0.0149 / 0.2106 (-0.0162) | Within ±0.05 | [dyna-qualified](cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/lowvar_dyna_results.json) |
+| LowVar | WinIT | 0.1781 ± 0.0101 / 0.1667 (+0.0114) | 0.1381 ± 0.0032 / 0.1140 (+0.0241) | 0.3859 ± 0.0046 / 0.3842 (+0.0017) | Within ±0.05 | [winit-qualified](cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/lowvar_winit_results.json) |
+| LowVar | CoRTX | 0.1124 ± 0.0015 / 0.4983 (-0.3859) | 0.0590 ± 0.0003 / 0.3281 (-0.2691) | 0.6667 ± 0.0000 / 0.4711 (+0.1956) | Outside ±0.05; provenance unresolved | [reconstruction-qualified](cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/lowvar_cortx_results.json) |
+| LowVar | SGT + Grad | 0.4149 ± 0.0347 / 0.3449 (+0.0700) | 0.2406 ± 0.0245 / 0.2133 (+0.0273) | 0.5970 ± 0.0233 / 0.3528 (+0.2442) | Outside ±0.05 | [poly1-kl-validation](cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/lowvar_sgt_grad_results.json) |
 
-SGT's longer 1000/120-epoch budget and validation checkpoint selection are
-explicit convergence repairs. CoRTX reconstruction and ten-epoch SGT already
-appear in the author snapshot; they were not newly invented by the previous
-runner. [Deviation notes](table2_deviations.md) separate confirmed defects,
-protocol changes, hypotheses and unresolved provenance.
+Table 1 TimeX/IG/Dynamask/WinIT fold SE is reconstructed from fold means rounded to four decimal places in the original logs; other SE values use full-precision JSON. SE describes variation across folds, not across independent training seeds.
 
----
+SeqComb-MV TimeX and CoRTX retain the original single-attempt predictors, including weak folds 3/4. IG, Dynamask and WinIT use the validation-qualified predictors. SGT trains its own classifier. The predictor differences are part of the selected recipes.
 
-## 2. Reference Predictor Performance (Table 15)
+LowVar TimeX improves over the original run from 0.8371 to 0.8547 AUPRC and from 0.5070 to 0.6076 AUP. Its AUP is higher than the paper by 0.0625, so the row remains outside the numerical-agreement tolerance. SeqComb-MV TimeX remains below the paper: 0.3735 versus 0.6878 AUPRC.
 
-In explainability benchmarks, the quality of attribution maps depends fundamentally on the performance of the underlying classifier being explained. Transformer predictors were evaluated over 5 folds:
+## Additional LowVar TimeX seeds
 
-| Dataset | Type | Reproduced Mean Test F1 | Paper Mean Test F1 | Difference | Status |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **FreqShapes** | Univariate | **0.9740** (seed 42) / **0.9790** (seed 0) | 0.9716 ± 0.0034 | +0.0024 / +0.0074 | Fully aligned |
-| **SeqComb-UV** | Univariate | **0.9184** | 0.9415 ± 0.0052 | -0.0231 | Slightly lower |
-| **LowVar** | Multivariate | **0.9774** | 0.9748 ± 0.0056 | +0.0026 | Fully aligned |
-| **SeqComb-MV** | Multivariate | **0.8866** | 0.9765 ± 0.0024 | -0.0899 | Discrepancy on folds 3 & 4 |
+Both completed follow-up seeds are shown separately; neither replaces seed 42.
 
-> **Key Predictor Insight**: The LowVar and FreqShapes predictors match or exceed the paper's target performance across all folds. SeqComb-MV trained successfully on splits 1, 2, and 5 (F1: `0.9539`, `0.9841`, `0.9639`), but underperformed on splits 3 and 4 (F1: `0.7787`, `0.7524`), which may contribute to the attribution gap; the causal effect awaits controlled pilots.
+| Seed | Folds | AUPRC | AUP | AUR | Source |
+|---|---:|---:|---:|---:|---|
+| 43 | 5 | 0.8711 ± 0.0105 | 0.6452 ± 0.0344 | 0.8757 ± 0.0122 | [Cluster result](cluster_runs/timex_table2_21927128/seed_43/results/connectivity-rollback-v1/seed_43/lowvar_ours_results.json) |
+| 44 | 5 | 0.8704 ± 0.0162 | 0.6651 ± 0.0275 | 0.8748 ± 0.0136 | [Cluster result](cluster_runs/timex_table2_21927128/seed_44/results/connectivity-rollback-v1/seed_44/lowvar_ours_results.json) |
 
----
+## SeqComb-UV IoU (Table 10)
 
-## 3. Table 1: Univariate Synthetic Attribution
+| Method | Reproduction | Paper | Difference |
+|---|---:|---:|---:|
+| TimeX | 0.4943 | 0.5214 | -0.0271 |
+| IG | 0.3183 | 0.3750 | -0.0567 |
+| Dynamask | 0.2940 | 0.2958 | -0.0018 |
 
-Metrics are reported as `Reproduction / Paper (Difference)`. Higher is better.
+## Reproduce
 
-| Dataset | Method | AUPRC | AUP | AUR | IoU |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| **FreqShapes** | **TimeX** | **0.8401** / 0.8324 *(+0.0077)* | **0.7440** / 0.7219 *(+0.0221)* | **0.6309** / 0.6381 *(-0.0072)* | 0.5057 / — |
-| | IG | 0.7846 / 0.7516 *(+0.0330)* | 0.7290 / 0.6912 *(+0.0378)* | 0.5777 / 0.5975 *(-0.0198)* | 0.4777 / — |
-| | Dynamask | 0.2415 / 0.2201 *(+0.0214)* | 0.3391 / 0.2952 *(+0.0439)* | 0.4949 / 0.5037 *(-0.0088)* | 0.1837 / — |
-| | WinIT | 0.5048 / 0.5071 *(-0.0023)* | 0.5611 / 0.5546 *(+0.0065)* | 0.4494 / 0.4557 *(-0.0063)* | 0.2575 / — |
-| | CoRTX | 0.5537 / 0.6978 *(-0.1441)* | 0.3720 / 0.4938 *(-0.1218)* | 0.5000 / 0.3261 *(+0.1739)* | 0.3829 / — |
-| | SGT + Grad | 0.2900 / 0.5312 *(-0.2412)* | 0.2026 / 0.4138 *(-0.2112)* | 0.3004 / 0.3931 *(-0.0927)* | 0.1206 / — |
-| **SeqComb-UV** | **TimeX** | **0.6831** / 0.7124 *(-0.0293)* | **0.9022** / 0.9411 *(-0.0389)* | **0.2989** / 0.3380 *(-0.0391)* | **0.4943** / 0.5214 *(-0.0271)* |
-| | IG | 0.5089 / 0.5760 *(-0.0671)* | 0.7501 / 0.8157 *(-0.0656)* | 0.3415 / 0.2868 *(+0.0547)* | 0.3183 / 0.3750 *(-0.0567)* |
-| | Dynamask | 0.4363 / 0.4421 *(-0.0058)* | 0.8727 / 0.8782 *(-0.0055)* | 0.1047 / 0.1029 *(+0.0018)* | 0.2940 / 0.2958 *(-0.0018)* |
-| | WinIT | 0.4577 / 0.4568 *(+0.0009)* | 0.7718 / 0.7872 *(-0.0154)* | 0.2426 / 0.2253 *(+0.0173)* | 0.2851 / — |
-| | CoRTX | 0.4105 / 0.5643 *(-0.1538)* | 0.5852 / 0.8241 *(-0.2389)* | 0.3383 / 0.1749 *(+0.1634)* | 0.2517 / — |
-| | SGT + Grad | 0.4402 / 0.5731 *(-0.1329)* | 0.8453 / 0.7828 *(+0.0625)* | 0.1536 / 0.2136 *(-0.0600)* | 0.2530 / — |
-
-*(Note: In an earlier local run using seed 0, TimeX on FreqShapes reached 0.8713 AUPRC, 0.7898 AUP, 0.6266 AUR, and 0.5323 IoU).*
-
-All six methods now have reproduced Table 1 numbers at base seed 42. CoRTX and SGT + Grad
-were added last and use the reimplementations in `txai/baselines/synth_baselines.py`; both
-fall materially short of the published values, and §5.3 explains why. **TimeX keeps rank #1
-on every metric of both univariate datasets**, so the paper's central claim is unaffected —
-but the baseline ordering below TimeX changes:
-
-| Dataset | Metric | Published order | Reproduced order |
-| :--- | :--- | :--- | :--- |
-| FreqShapes | AUPRC | TimeX > IG > CoRTX > SGT > WinIT > Dynamask | TimeX > IG > CoRTX > WinIT > SGT > Dynamask |
-| SeqComb-UV | AUPRC | TimeX > IG > SGT > CoRTX > WinIT > Dynamask | TimeX > IG > WinIT > SGT > Dynamask > CoRTX |
-
-### Table 10: SeqComb-UV Intersection over Union (IoU)
-
-The paper evaluates IoU to verify attribution map localization without thresholding bias:
-
-| Method | Reproduced IoU | Published IoU | Difference | Published Rank | Reproduced Rank |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **TimeX** | **0.4943** | **0.5214** | -0.0271 | **#1** | **#1** |
-| **IG** | 0.3183 | 0.3750 | -0.0567 | #2 | #2 |
-| **Dynamask**| 0.2940 | 0.2958 | -0.0018 | #3 | #3 |
-
-**Result**: The IoU ranking is 100% preserved. TimeX maintains a +0.1760 IoU lead over the closest baseline.
-
-The paper reports no IoU for the remaining methods; the reproduction measures WinIT at 0.2851, SGT + Grad at 0.2530, and CoRTX at 0.2517 on SeqComb-UV, all below Dynamask and far below TimeX.
-
----
-
-## 4. Table 2: historical comparison and repaired-run status
-
-The following numbers are **historical**, from job 21846132 at seed 42, and use
-`Historical mean ± fold SE / Paper (Difference)`. All three differences are
-reported for each row. They are not repaired estimates.
-
-| Dataset | Method | Historical all-three differences ≤0.05? | Repaired status |
-|---|---|---|---|
-| SeqComb-MV | TimeX | No | Pending GPU; 0/5 repaired folds |
-| SeqComb-MV | IG | No | Pending GPU; 0/5 repaired folds |
-| SeqComb-MV | Dynamask | Yes | Pending GPU; failed historical predictor gate |
-| SeqComb-MV | WinIT | No | Pending GPU; 0/5 repaired folds |
-| SeqComb-MV | SGT + Grad | No | Pending GPU; objective/budget repair |
-| SeqComb-MV | CoRTX | Yes | Unresolved multivariate provenance; GPU pending |
-| LowVar | TimeX | Yes | Pending GPU; 0/5 repaired folds |
-| LowVar | IG | Yes | Pending GPU; 0/5 repaired folds |
-| LowVar | Dynamask | Yes | Pending GPU; 0/5 repaired folds |
-| LowVar | WinIT | Yes | Pending GPU; 0/5 repaired folds |
-| LowVar | SGT + Grad | No | Pending GPU; objective/budget repair |
-| LowVar | CoRTX | No | Unresolved multivariate provenance; GPU pending |
-
-Acceptance requires five complete, traceable repaired folds, validation-qualified
-predictors, supported provenance, and **each** AUPRC/AUP/AUR difference ≤0.05.
-The runner generates a complete twelve-row CSV/Markdown comparison with those
-statuses after every run, including failed or partially completed runs.
-
-### LowVar (Multivariate)
-
-| Method | AUPRC | AUP | AUR |
-| :--- | :---: | :---: | :---: |
-| **TimeX** (Ours) | **0.8371 ± 0.0231** / 0.8673 *(-0.0302)* | **0.5070 ± 0.0379** / 0.5451 *(-0.0381)* | **0.9031 ± 0.0121** / 0.9004 *(+0.0027)* |
-| **IG** | 0.8326 ± 0.0523 / 0.8691 *(-0.0365)* | 0.4526 ± 0.0500 / 0.4827 *(-0.0301)* | 0.7991 ± 0.0184 / 0.8165 *(-0.0174)* |
-| **WinIT** | 0.1781 ± 0.0101 / 0.1667 *(+0.0114)* | 0.1381 ± 0.0032 / 0.1140 *(+0.0241)* | 0.3859 ± 0.0046 / 0.3842 *(+0.0017)* |
-| **Dynamask** | 0.1240 ± 0.0105 / 0.1391 *(-0.0151)* | 0.1309 ± 0.0177 / 0.1640 *(-0.0331)* | 0.1944 ± 0.0149 / 0.2106 *(-0.0162)* |
-| **CoRTX** | 0.1124 ± 0.0015 / 0.4983 *(-0.3859)* | 0.0590 ± 0.0003 / 0.3281 *(-0.2691)* | 0.6667 ± 0.0000 / 0.4711 *(+0.1956)* |
-| **SGT + Grad**| 0.1436 ± 0.0066 / 0.3449 *(-0.2013)* | 0.0701 ± 0.0047 / 0.2133 *(-0.1432)* | 0.3874 ± 0.0115 / 0.3528 *(+0.0346)* |
-
-### SeqComb-MV (Multivariate)
-
-| Method | AUPRC | AUP | AUR |
-| :--- | :---: | :---: | :---: |
-| **TimeX** (Ours) | **0.3735 ± 0.0363** / 0.6878 *(-0.3143)* | **0.7308 ± 0.0407** / 0.8326 *(-0.1018)* | **0.2938 ± 0.0155** / 0.3872 *(-0.0934)* |
-| **CoRTX** | 0.3623 ± 0.0007 / 0.3629 *(-0.0006)* | 0.5196 ± 0.0017 / 0.5625 *(-0.0429)* | 0.3453 ± 0.0006 / 0.3457 *(-0.0004)* |
-| **IG** | 0.2764 ± 0.0143 / 0.3298 *(-0.0534)* | 0.6452 ± 0.0415 / 0.7483 *(-0.1031)* | 0.3389 ± 0.0317 / 0.2581 *(+0.0808)* |
-| **Dynamask** | 0.2895 ± 0.0232 / 0.3136 *(-0.0241)* | 0.5342 ± 0.0572 / 0.5481 *(-0.0139)* | 0.2393 ± 0.0197 / 0.1953 *(+0.0440)* |
-| **WinIT** | 0.2793 ± 0.0309 / 0.2809 *(-0.0016)* | 0.6071 ± 0.0814 / 0.7594 *(-0.1523)* | 0.2622 ± 0.0248 / 0.2077 *(+0.0545)* |
-| **SGT + Grad**| 0.1012 ± 0.0048 / 0.4893 *(-0.3881)* | 0.2014 ± 0.0220 / 0.4970 *(-0.2956)* | 0.1518 ± 0.0411 / 0.4289 *(-0.2771)* |
-
----
-
-## 5. Interpretation and uncertainty
-
-The historical tables do not isolate the causes of differences. SeqComb-MV
-predictor failures are confirmed, but TimeX's healthy folds also miss recall.
-Broken temporal connectivity, active frozen-reference dropout and ineffective
-clipping are additional demonstrated implementation defects. Their numerical
-impact remains to be separated in the fixed-hyperparameter pilots.
-
-Baseline numerical agreement must be assessed across all three metrics. For
-example, SeqComb-MV WinIT is close in AUPRC but misses AUP by −0.1523 and AUR by
-+0.0545. Dynamask and WinIT both use the predictor and are affected by its quality.
-SGT trains its own classifier; longer training does not guarantee that its
-attributions will match the paper. Full-test macro-F1 will be recorded alongside
-SGT's attribution metrics.
-
-CoRTX's local and released cross-view InfoNCE formulas agree in forward loss and
-both input gradients to 1e-12 in the tested float64 cases. Replacing InfoNCE is
-therefore not a supported fix. The remaining multivariate reconstruction
-adaptation and LowVar saturation issue are documented in
-[the audit](table2_deviations.md). A close metric match cannot resolve provenance.
-
-Fold standard error is the primary uncertainty: standard deviation of fold
-means with `ddof=1`, divided by the square root of the number of folds. The
-historical pooled convention treats individual explanations as observations and
-uses `ddof=0`; it is retained as explicitly labelled pooled uncertainty. These
-are different estimands, and the much smaller pooled SE is not evidence of
-stability across folds or training seeds. Seeds 43/44 are conditional follow-ups
-for affected supported rows and must both be reported, without selecting the
-closest seed.
-
-## 6. Artifact & File References
-
-- **Table 1 Local Logs (FreqShapes, Seed 0)**: [`results/table1/`](results/table1/)
-  - Predictor: [`results/table1/freqshape_predictor_train.log`](results/table1/freqshape_predictor_train.log)
-  - TimeX: [`results/table1/freqshape_ours_evaluation.log`](results/table1/freqshape_ours_evaluation.log)
-  - IG: [`results/table1/freqshape_ig_evaluation.log`](results/table1/freqshape_ig_evaluation.log)
-  - WinIT: [`results/table1/freqshape_winit_evaluation.log`](results/table1/freqshape_winit_evaluation.log)
-- **Table 1 Full Run (Seed 42)**: [`timex_21712429/seed_42/results/`](timex_21712429/seed_42/results/) & [`results.md`](results.md)
-- **Historical Table 2 Run (Seed 42)**: [`timex_table2_21846132/seed_42/results/`](timex_table2_21846132/seed_42/results/)
-  - Summary: [`timex_table2_21846132/seed_42/results/table2_summary.md`](timex_table2_21846132/seed_42/results/table2_summary.md)
-  - CSV format: [`timex_table2_21846132/seed_42/results/table2_summary.csv`](timex_table2_21846132/seed_42/results/table2_summary.csv)
-  - Slurm Job Log: [`timex-table2-21846132.out`](timex-table2-21846132.out)
-- **Workflows & Runner Instructions**:
-  - [`experiments/TABLE1.md`](experiments/TABLE1.md)
-  - [`experiments/TABLE2.md`](experiments/TABLE2.md)
-
-## 7. Local validation and user-run GPU commands
+Use the same datasets, seed 42 and all five folds. The runners select the fixed recipe for each method automatically; no protocol switches are needed. Training budgets and dataset paths are documented in [Table 1](experiments/TABLE1.md) and [Table 2](experiments/TABLE2.md).
 
 ```bash
-PYTHONPATH=. uv run python -m unittest discover -s tests -p 'test_table2_repairs.py' -v
-PYTHONPATH=. uv run python experiments/evaluation/diagnose_table2.py --output results/table2_cpu_diagnosis.json
-bash -n run_table2.sh sj_timex_table2
-./run_table2.sh --datasets seqcomb_mv --folds 1 --methods ours --dry-run
+./run_table1.sh --seed 42
+./run_table2.sh --seed 42
+# Regenerate this Markdown from the recorded measurements:
+PYTHONPATH=. uv run python experiments/evaluation/report_synth.py
 ```
 
-The diagnosis requires `dataset/` and the historical archive. The focused tests
-use generated CPU tensors and temporary artifacts. No GPU job was submitted.
-The [workflow](experiments/TABLE2.md#gpu-pilots-and-full-run) gives all pilot,
-full-run, archived-resume, and conditional seed-43/44 submission commands.
+Use fresh checkpoints from the cleaned code. Old checkpoint formats are not migrated. Cluster numerical verification is still required; CPU checks validate the retained recipes and workflow behavior, not a new five-fold result.

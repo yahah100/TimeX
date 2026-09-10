@@ -40,7 +40,7 @@ def train_mv6_consistency(
     beta_sim,
     train_tuple,
     lam_label=1.0,
-    clip_norm=True,
+    clip_norm: bool | None = None,
     use_scheduler=False,
     wait_for_scheduler=20,
     scheduler_args=default_scheduler_args,
@@ -64,8 +64,6 @@ def train_mv6_consistency(
             with [embedding_sim, label_sim] functions
 
     """
-    # TODO: Add weights and biases logging
-
     best_epoch = 0
     best_val_metric = -1e9
 
@@ -74,7 +72,10 @@ def train_mv6_consistency(
             optimizer, **scheduler_args
         )
 
-    repaired = getattr(model, "training_version", "repaired-v1") == "repaired-v1"
+    # Original TimeX runs effectively did not clip (the call preceded backward).
+    # LowVar retains effective clipping; other model classes keep their default.
+    if clip_norm is None:
+        clip_norm = getattr(model, "reference_eval", True)
     if hasattr(model, "training_loss_weights"):
         model.training_loss_weights = dict(
             beta_exp=beta_exp, beta_sim=beta_sim, lam_label=lam_label
@@ -86,7 +87,7 @@ def train_mv6_consistency(
     for epoch in range(num_epochs):
 
         model.train()
-        if repaired and not any(
+        if getattr(model, "reference_eval", True) and not any(
             p.requires_grad for p in model.encoder_main.parameters()
         ):
             model.encoder_main.eval()
@@ -224,19 +225,16 @@ def train_mv6_consistency(
 
             if not torch.isfinite(loss):
                 raise FloatingPointError(f"Nonfinite TimeX loss at epoch {epoch + 1}")
-            if clip_norm and not repaired:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             loss.backward()
-            if repaired:
-                if clip_norm:
-                    torch.nn.utils.clip_grad_norm_(
-                        model.parameters(), 1.0, error_if_nonfinite=True
-                    )
-                elif any(
-                    p.grad is not None and not torch.isfinite(p.grad).all()
-                    for p in model.parameters()
-                ):
-                    raise FloatingPointError("Nonfinite TimeX gradient")
+            if clip_norm:
+                torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), 1.0, error_if_nonfinite=True
+                )
+            elif any(
+                p.grad is not None and not torch.isfinite(p.grad).all()
+                for p in model.parameters()
+            ):
+                raise FloatingPointError("Nonfinite TimeX gradient")
             if hasattr(model, "loss_components"):
                 with torch.no_grad():
                     p = model.mask_probabilities_btf(out_dict["mask_logits"])

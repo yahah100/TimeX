@@ -24,7 +24,6 @@ from txai.baselines.synth_baselines import (
     cortx_mask,
     make_cortx_decoder,
     make_transformer,
-    mask_bottom_features,
 )
 
 try:
@@ -498,8 +497,6 @@ def main(args):
             batch_times = times[:, start : start + 64].transpose(0, 1)
             batch_y = y[start : start + 64]
             grads = absolute_input_gradients(model, batch_x, batch_times, batch_y)
-            if args.sgt_masked_input_control:
-                grads = mask_bottom_features(batch_x, grads, fraction=0.9)
             generated_exps[:, start : start + 64] = grads.transpose(0, 1)
 
     elif args.exp_method == "winit":
@@ -644,7 +641,6 @@ if __name__ == "__main__":
         "--max-samples", type=int, help="limit test samples for smoke testing"
     )
 
-    parser.add_argument("--sgt-masked-input-control", action="store_true")
     args = parser.parse_args()
     if args.split_no == -1:
         # eval results on all splits
@@ -750,9 +746,7 @@ if __name__ == "__main__":
             },
         }
     output["completion_status"] = (
-        "diagnostic"
-        if args.max_samples is not None or args.sgt_masked_input_control
-        else "unverified"
+        "diagnostic" if args.max_samples is not None else "unverified"
     )
     if any(not np.isfinite(v) for f in output["folds"] for v in f["metrics"].values()):
         raise FloatingPointError("Nonfinite attribution metric")

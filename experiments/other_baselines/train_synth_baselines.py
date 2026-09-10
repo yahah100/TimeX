@@ -144,11 +144,12 @@ def train_cortx(
     )
 
 
-def train_sgt(dataset, loader, shape, output_path, epochs, device, val, control=False):
+def train_sgt(dataset, loader, shape, output_path, epochs, device, val):
     model = make_transformer(dataset, *shape).to(device)
     lr, weight_decay, default_epochs = SGT_TRAINING[dataset]
     epochs = epochs or default_epochs
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    original = dataset in {"freqshape", "scs_better"}
     best_f1 = -float("inf")
     history = []
     for epoch in range(epochs):
@@ -162,12 +163,26 @@ def train_sgt(dataset, loader, shape, output_path, epochs, device, val, control=
             model.train()
             logits = model(x, times, captum_input=True)
             masked_logits = model(masked, times, captum_input=True)
-            classification, consistency = sgt_objective(logits, masked_logits, target)
+            if original:
+                classification = F.cross_entropy(logits, target)
+                consistency = F.kl_div(
+                    masked_logits.log_softmax(dim=1),
+                    logits.detach().softmax(dim=1),
+                    reduction="batchmean",
+                )
+            else:
+                classification, consistency = sgt_objective(
+                    logits, masked_logits, target
+                )
             loss = classification + consistency
             checked_step(loss, optimizer, model.parameters())
             total += loss.item()
             classification_total += classification.item()
             consistency_total += consistency.item()
+        if original:
+            # The completed Table 1 runs used CE, detached KL and the final epoch.
+            print(f"SGT epoch {epoch + 1}/{epochs}: loss={total / len(loader):.6f}")
+            continue
         model.eval()
         score = float(eval_mvts_transformer(val, model))
         if not torch.isfinite(torch.tensor(score)):
@@ -176,8 +191,6 @@ def train_sgt(dataset, loader, shape, output_path, epochs, device, val, control=
         if selected:
             best_f1 = score
             best_epoch = epoch + 1
-        # The released ten-epoch control uses the final epoch checkpoint.
-        if selected or control:
             torch.save(cpu_state_dict(model), output_path)
         history.append(
             dict(
@@ -186,18 +199,16 @@ def train_sgt(dataset, loader, shape, output_path, epochs, device, val, control=
                 classification=classification_total / len(loader),
                 kl=consistency_total / len(loader),
                 validation_macro_f1=score,
-                selected_epoch=(epoch + 1 if control else best_epoch),
+                selected_epoch=best_epoch,
             )
         )
         Path(str(output_path) + ".epochs.json").write_text(
             json.dumps(history, indent=2, allow_nan=False) + "\n"
         )
         quality = dict(
-            validation_macro_f1=score if control else best_f1,
-            selected_epoch=epoch + 1 if control else best_epoch,
-            protocol="released-10epoch-control"
-            if control
-            else "poly1-kl-convergence-v1",
+            validation_macro_f1=best_f1,
+            selected_epoch=best_epoch,
+            recipe="poly1-kl-validation",
         )
         Path(str(output_path) + ".quality.json").write_text(
             json.dumps(quality, indent=2) + "\n"
@@ -205,6 +216,9 @@ def train_sgt(dataset, loader, shape, output_path, epochs, device, val, control=
         print(
             f"SGT epoch {epoch + 1}/{epochs}: loss={total / len(loader):.6f}, validation macro-F1={score:.4f}"
         )
+
+    if original:
+        torch.save(cpu_state_dict(model), output_path)
 
 
 def main(args):
@@ -244,10 +258,9 @@ def main(args):
                 loader,
                 shape,
                 output,
-                10 if args.sgt_control else args.sgt_epochs,
+                args.sgt_epochs,
                 device,
                 data["val"],
-                control=args.sgt_control,
             )
 
 
@@ -264,6 +277,5 @@ if __name__ == "__main__":
     )
     parser.add_argument("--data-root", type=Path, default=DATA_ROOT)
     parser.add_argument("--models-path", type=Path)
-    parser.add_argument("--sgt-control", action="store_true")
     parser.add_argument("--force", action="store_true")
     main(parser.parse_args())

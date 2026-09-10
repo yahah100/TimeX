@@ -1,23 +1,36 @@
 import torch
 import argparse, os
+from copy import deepcopy
 from pathlib import Path
 
-from txai.utils.predictors.loss import Poly1CrossEntropyLoss, GSATLoss_Extended, ConnectLoss_Extended
+from txai.utils.predictors.loss import (
+    Poly1CrossEntropyLoss,
+    GSATLoss_Extended,
+    ConnectLoss_Extended,
+)
 from txai.utils.predictors.loss_smoother_stats import *
 from txai.trainers.train_mv6_consistency import train_mv6_consistency
 
 from txai.models.encoders.transformer_simple import TransformerMVTS
-from txai.models.bc_model import TimeXModel, AblationParameters, transformer_default_args
+from txai.models.bc_model import (
+    TimeXModel,
+    AblationParameters,
+    transformer_default_args,
+)
 from txai.utils.data import process_Synth
 from txai.utils.predictors.eval import eval_mv4
 from txai.synth_data.simple_spike import SpikeTrainDataset
 from txai.utils.data.datasets import DatasetwInds
 from txai.utils.predictors.loss_cl import *
-from txai.utils.predictors.select_models import simloss_on_val_wboth, cosine_sim_for_simclr
+from txai.utils.predictors.select_models import (
+    simloss_on_val_wboth,
+    cosine_sim_for_simclr,
+)
 from txai.utils.constants import dataset_path
 from txai.utils.reproducibility import seed_everything
 
 import warnings
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -43,142 +56,153 @@ def naming_convention(args):
     elif args.rvalue is not None:
         name = "bc_r={:.2f}".format(args.rvalue) + "_split={}.pt"
     else:
-        name = 'bc_full_split={}.pt'
-    
+        name = "bc_full_split={}.pt"
+
     if args.lam != 1.0:
         # Not included in ablation parameters or other, so name it;
-        name = name[:-3] + '_lam={}'.format(args.lam) + '.pt'
-    
+        name = name[:-3] + "_lam={}".format(args.lam) + ".pt"
+
     return name
+
 
 def main(args):
 
     experiment_dir = Path(__file__).resolve().parent
-    model_dir = experiment_dir / 'models'
-    model_dir.mkdir(exist_ok=True)
+    model_dir = args.models_path
+    model_dir.mkdir(parents=True, exist_ok=True)
 
     if args.lstm:
-        arch = 'lstm'
+        arch = "lstm"
         predictor_name = "Scomb_lstm_split={}.pt"
     elif args.cnn:
-        arch = 'cnn'
+        arch = "cnn"
         predictor_name = "Scomb_cnn_split={}.pt"
     else:
-        arch = 'transformer'
+        arch = "transformer"
         predictor_name = "Scomb_transformer_split={}.pt"
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     clf_criterion = Poly1CrossEntropyLoss(
-        num_classes = 4,
-        epsilon = 1.0,
-        weight = None,
-        reduction = 'mean'
+        num_classes=4, epsilon=1.0, weight=None, reduction="mean"
     )
 
     sim_criterion_label = LabelConsistencyLoss()
     if args.simclr:
         sim_criterion_cons = SimCLRLoss()
-        sc_expand_args = {'simclr_training':True, 'num_negatives_simclr':64}
+        sc_expand_args = {"simclr_training": True, "num_negatives_simclr": 64}
     else:
         sim_criterion_cons = EmbedConsistencyLoss()
-        sc_expand_args = {'simclr_training':False, 'num_negatives_simclr':64}
+        sc_expand_args = {"simclr_training": False, "num_negatives_simclr": 64}
 
     if args.no_la:
         sim_criterion = sim_criterion_cons
     elif args.no_con:
         sim_criterion = sim_criterion_label
-    else: # Regular
+    else:  # Regular
         sim_criterion = [sim_criterion_cons, sim_criterion_label]
         if args.simclr:
-            selection_criterion = simloss_on_val_wboth([cosine_sim_for_simclr, sim_criterion_label], lam = 1.0)
+            selection_criterion = simloss_on_val_wboth(
+                [cosine_sim_for_simclr, sim_criterion_label], lam=1.0
+            )
         else:
-            selection_criterion = simloss_on_val_wboth(sim_criterion, lam = 1.0)
-        #selection_criterion = simloss_on_val_wboth(sim_criterion, lam = 1.0)
+            selection_criterion = simloss_on_val_wboth(sim_criterion, lam=1.0)
+        # selection_criterion = simloss_on_val_wboth(sim_criterion, lam = 1.0)
 
-    targs = transformer_default_args
+    targs = deepcopy(transformer_default_args)
 
-    for i in range(1, 6):
+    for i in [args.split_no] if args.split_no else range(1, 6):
         seed_everything(args.seed + i - 1)
-        D = process_Synth(split_no = i, device = device, base_path = dataset_path('SeqCombSingle'))
-        dset = DatasetwInds(D['train_loader'].X.to(device), D['train_loader'].times.to(device), D['train_loader'].y.to(device))
-        train_loader = torch.utils.data.DataLoader(dset, batch_size = 64, shuffle = True)
+        D = process_Synth(split_no=i, device=device, base_path=args.data_path)
+        dset = DatasetwInds(
+            D["train_loader"].X.to(device),
+            D["train_loader"].times.to(device),
+            D["train_loader"].y.to(device),
+        )
+        train_loader = torch.utils.data.DataLoader(dset, batch_size=64, shuffle=True)
 
-        val, test = D['val'], D['test']
+        val, test = D["val"], D["test"]
 
         # Calc statistics for baseline:
-        mu = D['train_loader'].X.mean(dim=1)
-        std = D['train_loader'].X.std(unbiased = True, dim = 1)
+        mu = D["train_loader"].X.mean(dim=1)
+        std = D["train_loader"].X.std(unbiased=True, dim=1)
 
         # Change transformer args:
-        targs['trans_dim_feedforward'] = 64
-        targs['trans_dropout'] = 0.25
-        targs['nlayers'] = 2
-        targs['norm_embedding'] = False
+        targs["trans_dim_feedforward"] = 64
+        targs["trans_dropout"] = 0.25
+        targs["nlayers"] = 2
+        targs["norm_embedding"] = False
 
         abl_params = AblationParameters(
-            equal_g_gt = args.eq_ge,
-            g_pret_equals_g = args.eq_pret, 
-            label_based_on_mask = True,
-            ptype_assimilation = True, 
-            side_assimilation = True,
-            use_ste = (not args.no_ste),
-            archtype = arch,
-            cnn_dim = 128
+            equal_g_gt=args.eq_ge,
+            g_pret_equals_g=args.eq_pret,
+            label_based_on_mask=True,
+            ptype_assimilation=True,
+            side_assimilation=True,
+            use_ste=(not args.no_ste),
+            archtype=arch,
+            cnn_dim=128,
         )
 
-        loss_weight_dict = {
-            'gsat': 1.0,
-            'connect': 2.0
-        }
+        loss_weight_dict = {"gsat": 1.0, "connect": 2.0}
 
         model = TimeXModel(
-            d_inp = 1,
-            max_len = 200,
-            n_classes = 4,
-            n_prototypes = 50,
-            gsat_r = 0.5 if (args.rvalue is None) else args.rvalue,
-            transformer_args = targs,
-            ablation_parameters = abl_params,
-            loss_weight_dict = loss_weight_dict,
-            masktoken_stats = (mu, std),
+            d_inp=1,
+            max_len=200,
+            n_classes=4,
+            n_prototypes=50,
+            gsat_r=0.5 if (args.rvalue is None) else args.rvalue,
+            transformer_args=targs,
+            ablation_parameters=abl_params,
+            loss_weight_dict=loss_weight_dict,
+            masktoken_stats=(mu, std),
         )
 
         predictor_path = model_dir / predictor_name.format(i)
         model.encoder_main.load_state_dict(torch.load(predictor_path))
         model.to(device)
 
-        model.init_prototypes(train = (D['train_loader'].X.to(device), D['train_loader'].times.to(device), D['train_loader'].y.to(device)))
+        model.init_prototypes(
+            train=(
+                D["train_loader"].X.to(device),
+                D["train_loader"].times.to(device),
+                D["train_loader"].y.to(device),
+            )
+        )
 
-        if not args.ge_rand_init: # Copies if not running this ablation
+        if not args.ge_rand_init:  # Copies if not running this ablation
             model.encoder_t.load_state_dict(torch.load(predictor_path))
 
         for param in model.encoder_main.parameters():
             param.requires_grad = False
 
-        optimizer = torch.optim.AdamW(model.parameters(), lr = 1e-3, weight_decay = 0.001)
-        
+        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.001)
+
         model_suffix = naming_convention(args)
         spath = model_dir / model_suffix.format(i)
-        print('saving at', spath)
+        print("saving at", spath)
 
         best_model = train_mv6_consistency(
             model,
-            optimizer = optimizer,
-            train_loader = train_loader,
-            clf_criterion = clf_criterion,
-            sim_criterion = sim_criterion,
-            beta_exp = 2.0,
-            beta_sim = 1.0,
-            val_tuple = val, 
-            num_epochs = 50,
-            save_path = spath,
-            train_tuple = (D['train_loader'].X, D['train_loader'].times, D['train_loader'].y),
-            early_stopping = True,
-            selection_criterion = selection_criterion,
-            label_matching = True,
-            embedding_matching = True,
-            use_scheduler = True,
+            optimizer=optimizer,
+            train_loader=train_loader,
+            clf_criterion=clf_criterion,
+            sim_criterion=sim_criterion,
+            beta_exp=2.0,
+            beta_sim=1.0,
+            val_tuple=val,
+            num_epochs=args.epochs,
+            save_path=spath,
+            train_tuple=(
+                D["train_loader"].X,
+                D["train_loader"].times,
+                D["train_loader"].y,
+            ),
+            early_stopping=True,
+            selection_criterion=selection_criterion,
+            label_matching=True,
+            embedding_matching=True,
+            use_scheduler=True,
             **sc_expand_args
         )
 
@@ -187,28 +211,56 @@ def main(args):
         model.load_state_dict(sdict)
 
         f1, _ = eval_mv4(test, model)
-        print('Test F1: {:.4f}'.format(f1))
+        print("Test F1: {:.4f}".format(f1))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     ablations = parser.add_mutually_exclusive_group()
-    ablations.add_argument('--eq_ge', action = 'store_true', help = 'G = G_E')
-    ablations.add_argument('--eq_pret', action = 'store_true', help = 'G_pret = G')
-    ablations.add_argument('--ge_rand_init', action = 'store_true', help = "Randomly initialized G_E, i.e. don't copy")
-    ablations.add_argument('--no_ste', action = 'store_true', help = 'Does not use STE')
-    ablations.add_argument('--simclr', action = 'store_true', help = 'Uses SimCLR loss instead of consistency loss')
-    ablations.add_argument('--no_la', action = 'store_true', help = 'No label alignment - just consistency loss')
-    ablations.add_argument('--no_con', action = 'store_true', help = 'No consistency loss - just label')
+    ablations.add_argument("--eq_ge", action="store_true", help="G = G_E")
+    ablations.add_argument("--eq_pret", action="store_true", help="G_pret = G")
+    ablations.add_argument(
+        "--ge_rand_init",
+        action="store_true",
+        help="Randomly initialized G_E, i.e. don't copy",
+    )
+    ablations.add_argument("--no_ste", action="store_true", help="Does not use STE")
+    ablations.add_argument(
+        "--simclr",
+        action="store_true",
+        help="Uses SimCLR loss instead of consistency loss",
+    )
+    ablations.add_argument(
+        "--no_la",
+        action="store_true",
+        help="No label alignment - just consistency loss",
+    )
+    ablations.add_argument(
+        "--no_con", action="store_true", help="No consistency loss - just label"
+    )
     # Note if you don't activate any of them, it just trains the normal method
 
-    ablations.add_argument('--lstm', action = 'store_true', help = 'Run w LSTM')
-    ablations.add_argument('--cnn', action = 'store_true')
+    ablations.add_argument("--lstm", action="store_true", help="Run w LSTM")
+    ablations.add_argument("--cnn", action="store_true")
 
-    parser.add_argument('--rvalue', type = float, default = None, help = 'r for GSAT loss')
-    parser.add_argument('--lam', type = float, default = 1.0, help = 'lambda between label alignment and consistency loss')
-    parser.add_argument('--seed', type=int, default=0, help='base random seed (default: 0)')
+    parser.add_argument("--rvalue", type=float, default=None, help="r for GSAT loss")
+    parser.add_argument(
+        "--lam",
+        type=float,
+        default=1.0,
+        help="lambda between label alignment and consistency loss",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="base random seed (default: 42)"
+    )
 
+    parser.add_argument("--split-no", type=int, choices=range(1, 6))
+    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument(
+        "--models-path", type=Path, default=Path(__file__).resolve().parent / "models"
+    )
+    parser.add_argument("--data-path", type=Path, default=dataset_path("SeqCombSingle"))
     args = parser.parse_args()
 
     main(args)

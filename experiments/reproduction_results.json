@@ -1,0 +1,1989 @@
+{
+  "selection": "Highest AUPRC among complete five-fold seed-42 configurations; exact ties use the traceable completed run. Metrics are kept together from the same configuration.",
+  "rows": [
+    {
+      "table": 1,
+      "dataset": "freqshape",
+      "method": "ours",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.8401,
+          "standard_error": 0.020202286999248375
+        },
+        "aup": {
+          "mean": 0.744,
+          "standard_error": 0.024557740124042358
+        },
+        "aur": {
+          "mean": 0.6309,
+          "standard_error": 0.020777646642485773
+        },
+        "iou": {
+          "mean": 0.5057,
+          "standard_error": 0.014728326449396754
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "metrics": {
+            "auprc": 0.8379,
+            "aup": 0.8068,
+            "aur": 0.5737,
+            "iou": 0.5167
+          }
+        },
+        {
+          "split": 2,
+          "metrics": {
+            "auprc": 0.8745,
+            "aup": 0.7359,
+            "aur": 0.6874,
+            "iou": 0.53
+          }
+        },
+        {
+          "split": 3,
+          "metrics": {
+            "auprc": 0.8469,
+            "aup": 0.7665,
+            "aur": 0.5991,
+            "iou": 0.5124
+          }
+        },
+        {
+          "split": 4,
+          "metrics": {
+            "auprc": 0.8762,
+            "aup": 0.753,
+            "aur": 0.6649,
+            "iou": 0.5216
+          }
+        },
+        {
+          "split": 5,
+          "metrics": {
+            "auprc": 0.7651,
+            "aup": 0.6576,
+            "aur": 0.6292,
+            "iou": 0.448
+          }
+        }
+      ],
+      "source": "timex_21712429/seed_42/results/freqshape_ours_evaluation.log",
+      "source_sha256": "10e9c3054e4137f658abf3e688f66c2728d55b196f2ef2bc50c07ae2b5815672",
+      "precision": "rounded_log_4dp"
+    },
+    {
+      "table": 1,
+      "dataset": "freqshape",
+      "method": "ig",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.7846,
+          "standard_error": 0.04471131176782895
+        },
+        "aup": {
+          "mean": 0.729,
+          "standard_error": 0.0426920648364541
+        },
+        "aur": {
+          "mean": 0.5777,
+          "standard_error": 0.007097788387941688
+        },
+        "iou": {
+          "mean": 0.4777,
+          "standard_error": 0.0323121122800723
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "metrics": {
+            "auprc": 0.8311,
+            "aup": 0.7982,
+            "aur": 0.5542,
+            "iou": 0.5046
+          }
+        },
+        {
+          "split": 2,
+          "metrics": {
+            "auprc": 0.8776,
+            "aup": 0.8016,
+            "aur": 0.5749,
+            "iou": 0.5629
+          }
+        },
+        {
+          "split": 3,
+          "metrics": {
+            "auprc": 0.6185,
+            "aup": 0.568,
+            "aur": 0.5742,
+            "iou": 0.3649
+          }
+        },
+        {
+          "split": 4,
+          "metrics": {
+            "auprc": 0.7732,
+            "aup": 0.7267,
+            "aur": 0.5922,
+            "iou": 0.4686
+          }
+        },
+        {
+          "split": 5,
+          "metrics": {
+            "auprc": 0.8227,
+            "aup": 0.7506,
+            "aur": 0.5927,
+            "iou": 0.4873
+          }
+        }
+      ],
+      "source": "timex_21712429/seed_42/results/freqshape_ig_evaluation.log",
+      "source_sha256": "07a861c03aecae539ae2d9b2ce092aed3060865e73147a457a0933c75d01feb9",
+      "precision": "rounded_log_4dp"
+    },
+    {
+      "table": 1,
+      "dataset": "freqshape",
+      "method": "dyna",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.2415,
+          "standard_error": 0.020367803023399456
+        },
+        "aup": {
+          "mean": 0.3391,
+          "standard_error": 0.048325572940214584
+        },
+        "aur": {
+          "mean": 0.4949,
+          "standard_error": 0.010800351846120567
+        },
+        "iou": {
+          "mean": 0.1837,
+          "standard_error": 0.006990450629251306
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "metrics": {
+            "auprc": 0.2154,
+            "aup": 0.2355,
+            "aur": 0.5091,
+            "iou": 0.1833
+          }
+        },
+        {
+          "split": 2,
+          "metrics": {
+            "auprc": 0.3225,
+            "aup": 0.5208,
+            "aur": 0.4534,
+            "iou": 0.2102
+          }
+        },
+        {
+          "split": 3,
+          "metrics": {
+            "auprc": 0.2227,
+            "aup": 0.3014,
+            "aur": 0.506,
+            "iou": 0.1751
+          }
+        },
+        {
+          "split": 4,
+          "metrics": {
+            "auprc": 0.2186,
+            "aup": 0.2999,
+            "aur": 0.5118,
+            "iou": 0.1797
+          }
+        },
+        {
+          "split": 5,
+          "metrics": {
+            "auprc": 0.2282,
+            "aup": 0.3379,
+            "aur": 0.4944,
+            "iou": 0.1701
+          }
+        }
+      ],
+      "source": "timex_21712429/seed_42/results/freqshape_dyna_evaluation.log",
+      "source_sha256": "cba3f85cc8020f13075caa2f07455f97e98db362638a7f06d0f0394a1f88a83a",
+      "precision": "rounded_log_4dp"
+    },
+    {
+      "table": 1,
+      "dataset": "freqshape",
+      "method": "winit",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.5048,
+          "standard_error": 0.021802417297171434
+        },
+        "aup": {
+          "mean": 0.5611,
+          "standard_error": 0.013694173943688614
+        },
+        "aur": {
+          "mean": 0.4494,
+          "standard_error": 0.012958796240392085
+        },
+        "iou": {
+          "mean": 0.2575,
+          "standard_error": 0.01773705161519242
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "metrics": {
+            "auprc": 0.4715,
+            "aup": 0.5245,
+            "aur": 0.4519,
+            "iou": 0.2286
+          }
+        },
+        {
+          "split": 2,
+          "metrics": {
+            "auprc": 0.5634,
+            "aup": 0.6068,
+            "aur": 0.4564,
+            "iou": 0.3054
+          }
+        },
+        {
+          "split": 3,
+          "metrics": {
+            "auprc": 0.4749,
+            "aup": 0.5562,
+            "aur": 0.4338,
+            "iou": 0.2333
+          }
+        },
+        {
+          "split": 4,
+          "metrics": {
+            "auprc": 0.4621,
+            "aup": 0.5468,
+            "aur": 0.4134,
+            "iou": 0.2243
+          }
+        },
+        {
+          "split": 5,
+          "metrics": {
+            "auprc": 0.5522,
+            "aup": 0.5708,
+            "aur": 0.4914,
+            "iou": 0.2959
+          }
+        }
+      ],
+      "source": "timex_21712429/seed_42/results/freqshape_winit_evaluation.log",
+      "source_sha256": "48d7d3749d194f9e2793b73ad6a2c9df24d7131f75886411f3feea4d1a88e398",
+      "precision": "rounded_log_4dp"
+    },
+    {
+      "table": 1,
+      "dataset": "freqshape",
+      "method": "cortx",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.5536667732462828,
+          "standard_error": 0.00027095450644802095
+        },
+        "aup": {
+          "mean": 0.3720077474187823,
+          "standard_error": 0.0007315037692852325
+        },
+        "aur": {
+          "mean": 0.4999709333056697,
+          "standard_error": 5.813751607624529e-06
+        },
+        "iou": {
+          "mean": 0.38285889084935193,
+          "standard_error": 0.0075360199400858145
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "n_samples": 1000,
+          "metrics": {
+            "auprc": 0.5539544083227295,
+            "aup": 0.371049555763028,
+            "aur": 0.49998827899589277,
+            "iou": 0.3911222248077393
+          }
+        },
+        {
+          "split": 2,
+          "n_samples": 1000,
+          "metrics": {
+            "auprc": 0.554520667448548,
+            "aup": 0.3746742843843241,
+            "aur": 0.4999638967204012,
+            "iou": 0.3534722235202789
+          }
+        },
+        {
+          "split": 3,
+          "n_samples": 1000,
+          "metrics": {
+            "auprc": 0.5529048415770986,
+            "aup": 0.37172814121373826,
+            "aur": 0.49995414405254723,
+            "iou": 0.3874944458901882
+          }
+        },
+        {
+          "split": 4,
+          "n_samples": 1000,
+          "metrics": {
+            "auprc": 0.553432982372121,
+            "aup": 0.370406084987142,
+            "aur": 0.49997754476470635,
+            "iou": 0.3862777806222439
+          }
+        },
+        {
+          "split": 5,
+          "n_samples": 1000,
+          "metrics": {
+            "auprc": 0.5535209665109168,
+            "aup": 0.37218067074567895,
+            "aur": 0.49997080199480115,
+            "iou": 0.39592777940630913
+          }
+        }
+      ],
+      "source": "results/table1/freqshape_cortx_results.json",
+      "source_sha256": "120319dd8e4b7494d29b456426eb4fb45eeaf0f2031f081fe967572242e52029",
+      "precision": "full"
+    },
+    {
+      "table": 1,
+      "dataset": "freqshape",
+      "method": "sgt+grad",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.29001291847668853,
+          "standard_error": 0.0726381594924009
+        },
+        "aup": {
+          "mean": 0.2025510396590502,
+          "standard_error": 0.08490994324913792
+        },
+        "aur": {
+          "mean": 0.30040470418418475,
+          "standard_error": 0.046132112938814605
+        },
+        "iou": {
+          "mean": 0.12058084973096847,
+          "standard_error": 0.057721853002680325
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "n_samples": 1000,
+          "metrics": {
+            "auprc": 0.18067223436019172,
+            "aup": 0.08163677710939606,
+            "aur": 0.21713854700636556,
+            "iou": 0.038209679566323755
+          }
+        },
+        {
+          "split": 2,
+          "n_samples": 1000,
+          "metrics": {
+            "auprc": 0.5747942531438507,
+            "aup": 0.5381598695582303,
+            "aur": 0.47396448755182186,
+            "iou": 0.3467643897756934
+          }
+        },
+        {
+          "split": 3,
+          "n_samples": 1000,
+          "metrics": {
+            "auprc": 0.19583899933312576,
+            "aup": 0.10223242506781094,
+            "aur": 0.22949588976318575,
+            "iou": 0.04746227262914181
+          }
+        },
+        {
+          "split": 4,
+          "n_samples": 1000,
+          "metrics": {
+            "auprc": 0.2616143933389207,
+            "aup": 0.15831817692326136,
+            "aur": 0.3027796120845528,
+            "iou": 0.10581440928578377
+          }
+        },
+        {
+          "split": 5,
+          "n_samples": 1000,
+          "metrics": {
+            "auprc": 0.23714471220735364,
+            "aup": 0.13240794963655234,
+            "aur": 0.2786449845149977,
+            "iou": 0.06465349739789963
+          }
+        }
+      ],
+      "source": "results/table1/freqshape_sgt_grad_results.json",
+      "source_sha256": "ccafeb4cf6e4880607f6da2271833a7b5d77f1473719af4a2f569a5685656e68",
+      "precision": "full"
+    },
+    {
+      "table": 1,
+      "dataset": "seqcomb_uv",
+      "method": "ours",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.6831,
+          "standard_error": 0.022975691502107185
+        },
+        "aup": {
+          "mean": 0.9022,
+          "standard_error": 0.04834886761859061
+        },
+        "aur": {
+          "mean": 0.2989,
+          "standard_error": 0.057189742087196016
+        },
+        "iou": {
+          "mean": 0.4943,
+          "standard_error": 0.02664042041710303
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "metrics": {
+            "auprc": 0.7379,
+            "aup": 0.9864,
+            "aur": 0.1857,
+            "iou": 0.553
+          }
+        },
+        {
+          "split": 2,
+          "metrics": {
+            "auprc": 0.7014,
+            "aup": 0.7425,
+            "aur": 0.4974,
+            "iou": 0.5221
+          }
+        },
+        {
+          "split": 3,
+          "metrics": {
+            "auprc": 0.6507,
+            "aup": 0.837,
+            "aur": 0.354,
+            "iou": 0.4434
+          }
+        },
+        {
+          "split": 4,
+          "metrics": {
+            "auprc": 0.6111,
+            "aup": 0.9747,
+            "aur": 0.2417,
+            "iou": 0.4184
+          }
+        },
+        {
+          "split": 5,
+          "metrics": {
+            "auprc": 0.7145,
+            "aup": 0.9704,
+            "aur": 0.2159,
+            "iou": 0.5346
+          }
+        }
+      ],
+      "source": "timex_21712429/seed_42/results/seqcomb_uv_ours_evaluation.log",
+      "source_sha256": "e6eeae03c3b32daed78702ab9bed0ac9cbe92476b0bbd44a50d481496fb6a55a",
+      "precision": "rounded_log_4dp"
+    },
+    {
+      "table": 1,
+      "dataset": "seqcomb_uv",
+      "method": "ig",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.5089,
+          "standard_error": 0.013683113680738018
+        },
+        "aup": {
+          "mean": 0.7501,
+          "standard_error": 0.017108915804340156
+        },
+        "aur": {
+          "mean": 0.3415,
+          "standard_error": 0.014988295433437385
+        },
+        "iou": {
+          "mean": 0.3183,
+          "standard_error": 0.01059563117515894
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "metrics": {
+            "auprc": 0.4882,
+            "aup": 0.7299,
+            "aur": 0.3599,
+            "iou": 0.3063
+          }
+        },
+        {
+          "split": 2,
+          "metrics": {
+            "auprc": 0.4743,
+            "aup": 0.699,
+            "aur": 0.3869,
+            "iou": 0.2894
+          }
+        },
+        {
+          "split": 3,
+          "metrics": {
+            "auprc": 0.501,
+            "aup": 0.7463,
+            "aur": 0.3421,
+            "iou": 0.3105
+          }
+        },
+        {
+          "split": 4,
+          "metrics": {
+            "auprc": 0.5464,
+            "aup": 0.7871,
+            "aur": 0.3124,
+            "iou": 0.3454
+          }
+        },
+        {
+          "split": 5,
+          "metrics": {
+            "auprc": 0.5344,
+            "aup": 0.7882,
+            "aur": 0.3062,
+            "iou": 0.34
+          }
+        }
+      ],
+      "source": "timex_21712429/seed_42/results/seqcomb_uv_ig_evaluation.log",
+      "source_sha256": "8001867d25576c3c069fd8f960d36593ee6f0cab8b1bddc57de61338f288ddb2",
+      "precision": "rounded_log_4dp"
+    },
+    {
+      "table": 1,
+      "dataset": "seqcomb_uv",
+      "method": "dyna",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.4363,
+          "standard_error": 0.008627201168397547
+        },
+        "aup": {
+          "mean": 0.8727,
+          "standard_error": 0.010450808581157722
+        },
+        "aur": {
+          "mean": 0.1047,
+          "standard_error": 0.0007635443667528427
+        },
+        "iou": {
+          "mean": 0.294,
+          "standard_error": 0.006256884208613737
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "metrics": {
+            "auprc": 0.4354,
+            "aup": 0.8494,
+            "aur": 0.104,
+            "iou": 0.2942
+          }
+        },
+        {
+          "split": 2,
+          "metrics": {
+            "auprc": 0.4211,
+            "aup": 0.8619,
+            "aur": 0.1075,
+            "iou": 0.286
+          }
+        },
+        {
+          "split": 3,
+          "metrics": {
+            "auprc": 0.4154,
+            "aup": 0.8588,
+            "aur": 0.1033,
+            "iou": 0.2766
+          }
+        },
+        {
+          "split": 4,
+          "metrics": {
+            "auprc": 0.4629,
+            "aup": 0.8874,
+            "aur": 0.1051,
+            "iou": 0.3137
+          }
+        },
+        {
+          "split": 5,
+          "metrics": {
+            "auprc": 0.4469,
+            "aup": 0.9061,
+            "aur": 0.1036,
+            "iou": 0.2993
+          }
+        }
+      ],
+      "source": "timex_21712429/seed_42/results/seqcomb_uv_dyna_evaluation.log",
+      "source_sha256": "26b895009d00e53e88fc6d5df88e7b4818c447d9424b17bc98f5464271f2958b",
+      "precision": "rounded_log_4dp"
+    },
+    {
+      "table": 1,
+      "dataset": "seqcomb_uv",
+      "method": "winit",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.4577,
+          "standard_error": 0.025841489895127943
+        },
+        "aup": {
+          "mean": 0.7718,
+          "standard_error": 0.024658617155063667
+        },
+        "aur": {
+          "mean": 0.2426,
+          "standard_error": 0.006941656862738176
+        },
+        "iou": {
+          "mean": 0.2851,
+          "standard_error": 0.02173505463531205
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "metrics": {
+            "auprc": 0.4729,
+            "aup": 0.786,
+            "aur": 0.2498,
+            "iou": 0.2988
+          }
+        },
+        {
+          "split": 2,
+          "metrics": {
+            "auprc": 0.3583,
+            "aup": 0.6865,
+            "aur": 0.2421,
+            "iou": 0.2025
+          }
+        },
+        {
+          "split": 3,
+          "metrics": {
+            "auprc": 0.5085,
+            "aup": 0.8393,
+            "aur": 0.2211,
+            "iou": 0.3292
+          }
+        },
+        {
+          "split": 4,
+          "metrics": {
+            "auprc": 0.4818,
+            "aup": 0.7814,
+            "aur": 0.2372,
+            "iou": 0.3071
+          }
+        },
+        {
+          "split": 5,
+          "metrics": {
+            "auprc": 0.4668,
+            "aup": 0.7659,
+            "aur": 0.2631,
+            "iou": 0.2881
+          }
+        }
+      ],
+      "source": "timex_21712429/seed_42/results/seqcomb_uv_winit_evaluation.log",
+      "source_sha256": "03c1ed75d66efe2257bb0c11328dd1ef3d3d1ca2089d3ce78f0f7ad275cbb0a9",
+      "precision": "rounded_log_4dp"
+    },
+    {
+      "table": 1,
+      "dataset": "seqcomb_uv",
+      "method": "cortx",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.41053932012791694,
+          "standard_error": 0.0004198292982284853
+        },
+        "aup": {
+          "mean": 0.5851713255979948,
+          "standard_error": 0.0004556129188648898
+        },
+        "aur": {
+          "mean": 0.3383490570229399,
+          "standard_error": 0.0005073599970542444
+        },
+        "iou": {
+          "mean": 0.25170051349302136,
+          "standard_error": 0.00037750565925379526
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.41179610770576935,
+            "aup": 0.5863222069873684,
+            "aur": 0.33941017606779067,
+            "iou": 0.25281076685587567
+          }
+        },
+        {
+          "split": 2,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.409850790947393,
+            "aup": 0.5861420540550303,
+            "aur": 0.337358732200865,
+            "iou": 0.25170416956643266
+          }
+        },
+        {
+          "split": 3,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.41099822380573203,
+            "aup": 0.5847636914712284,
+            "aur": 0.3392445829044378,
+            "iou": 0.2522016608764728
+          }
+        },
+        {
+          "split": 4,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.4106313056824409,
+            "aup": 0.583960926531532,
+            "aur": 0.33880736193968414,
+            "iou": 0.25106931090851625
+          }
+        },
+        {
+          "split": 5,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.4094201724982496,
+            "aup": 0.5846677489448147,
+            "aur": 0.33692443200192196,
+            "iou": 0.25071665925780934
+          }
+        }
+      ],
+      "source": "results/table1/seqcomb_uv_cortx_results.json",
+      "source_sha256": "891616618e65f0db52e31f986d8ba45058ffe8820f8bfa29b12ef57e0e0661a6",
+      "precision": "full"
+    },
+    {
+      "table": 1,
+      "dataset": "seqcomb_uv",
+      "method": "sgt+grad",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.44022751382901976,
+          "standard_error": 0.012756600057572938
+        },
+        "aup": {
+          "mean": 0.8452774396121019,
+          "standard_error": 0.012365796882849174
+        },
+        "aur": {
+          "mean": 0.15355484403255054,
+          "standard_error": 0.006698393082638129
+        },
+        "iou": {
+          "mean": 0.25303349193235236,
+          "standard_error": 0.010432602771123841
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.4857677690451324,
+            "aup": 0.8836310459597583,
+            "aur": 0.16126296043958654,
+            "iou": 0.29086373638610047
+          }
+        },
+        {
+          "split": 2,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.45039992269824913,
+            "aup": 0.8146415437695562,
+            "aur": 0.1754522696422794,
+            "iou": 0.2606029200131694
+          }
+        },
+        {
+          "split": 3,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.4217722924956951,
+            "aup": 0.8500660026110191,
+            "aur": 0.14046521799804373,
+            "iou": 0.23734906780223053
+          }
+        },
+        {
+          "split": 4,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.41698520173893533,
+            "aup": 0.8224778887026643,
+            "aur": 0.15033330544526982,
+            "iou": 0.23883207674324514
+          }
+        },
+        {
+          "split": 5,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.4262123831670866,
+            "aup": 0.8555707170175114,
+            "aur": 0.14026046663757324,
+            "iou": 0.23751965871701639
+          }
+        }
+      ],
+      "source": "results/table1/seqcomb_uv_sgt_grad_results.json",
+      "source_sha256": "e7b6e54027064a138f659410d83e7ae4341c70504a8eca1460ed8939ad37bf53",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "seqcomb_mv",
+      "method": "ours",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.3734815435851277,
+          "standard_error": 0.036266459150856016
+        },
+        "aup": {
+          "mean": 0.7308417281744303,
+          "standard_error": 0.04066313072026415
+        },
+        "aur": {
+          "mean": 0.2938215128499374,
+          "standard_error": 0.015497855480769037
+        },
+        "iou": {
+          "mean": 0.1703237166230877,
+          "standard_error": 0.021753722007286227
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.46044992694870396,
+            "aup": 0.8370471338681903,
+            "aur": 0.25330271012264294,
+            "iou": 0.22713849118600288
+          }
+        },
+        {
+          "split": 2,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.3034903372747342,
+            "aup": 0.683957884537473,
+            "aur": 0.2846960982441422,
+            "iou": 0.1349359713618954
+          }
+        },
+        {
+          "split": 3,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.2812214299573522,
+            "aup": 0.6195780168449437,
+            "aur": 0.3035536178876148,
+            "iou": 0.11000620961685975
+          }
+        },
+        {
+          "split": 4,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.3757877342811908,
+            "aup": 0.7026671007081545,
+            "aur": 0.3468488684994004,
+            "iou": 0.17259570562839507
+          }
+        },
+        {
+          "split": 5,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.44645828946365723,
+            "aup": 0.8109585049133896,
+            "aur": 0.2807062694958866,
+            "iou": 0.2069422053222855
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21846132/seed_42/results/seqcomb_mv_ours_results.json",
+      "source_sha256": "c35f758626629ad8a313812953dc62f8ec0fd430339dc4d397ae7b7c83d5c438",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "seqcomb_mv",
+      "method": "ig",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.2837196391905251,
+          "standard_error": 0.015883897479945765
+        },
+        "aup": {
+          "mean": 0.6724473690787199,
+          "standard_error": 0.02962859950224948
+        },
+        "aur": {
+          "mean": 0.31723567275257525,
+          "standard_error": 0.032288509025242794
+        },
+        "iou": {
+          "mean": 0.1375975057370961,
+          "standard_error": 0.007969395730720525
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.3117742636812225,
+            "aup": 0.740049616849259,
+            "aur": 0.25230632038497325,
+            "iou": 0.15293182536462943
+          }
+        },
+        {
+          "split": 2,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.24930266902809217,
+            "aup": 0.6077523041102435,
+            "aur": 0.3687524998789668,
+            "iou": 0.11585142489646871
+          }
+        },
+        {
+          "split": 3,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.3207413003031913,
+            "aup": 0.5951453964378559,
+            "aur": 0.4162589345749639,
+            "iou": 0.15285469651346406
+          }
+        },
+        {
+          "split": 4,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.2435527715885296,
+            "aup": 0.7042283314710508,
+            "aur": 0.25844677333639143,
+            "iou": 0.12112719174598655
+          }
+        },
+        {
+          "split": 5,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.29322719135159014,
+            "aup": 0.7150611965251907,
+            "aur": 0.2904138355875811,
+            "iou": 0.1452223901649316
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/seqcomb_mv_ig_results.json",
+      "source_sha256": "b16d86abd020004e24a550235cd7941f3759924b2e6b31d4c55ec4e901bf2e78",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "seqcomb_mv",
+      "method": "dyna",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.3277468867902076,
+          "standard_error": 0.011617742308194713
+        },
+        "aup": {
+          "mean": 0.6198791756713126,
+          "standard_error": 0.030566010108213765
+        },
+        "aur": {
+          "mean": 0.21772498723226757,
+          "standard_error": 0.015806490938403268
+        },
+        "iou": {
+          "mean": 0.17001248144482572,
+          "standard_error": 0.00369140407162583
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.3408696991857776,
+            "aup": 0.6310862438365655,
+            "aur": 0.22651366189100205,
+            "iou": 0.17524669593324263
+          }
+        },
+        {
+          "split": 2,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.3055662374417914,
+            "aup": 0.556663081848641,
+            "aur": 0.17514839101099305,
+            "iou": 0.16393498238300283
+          }
+        },
+        {
+          "split": 3,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.30012439755949794,
+            "aup": 0.5429294363739203,
+            "aur": 0.1902138885371529,
+            "iou": 0.16142422509193421
+          }
+        },
+        {
+          "split": 4,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.36340068959665744,
+            "aup": 0.6971511864240051,
+            "aur": 0.26372458325635045,
+            "iou": 0.18143500801424187
+          }
+        },
+        {
+          "split": 5,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.3287734101673136,
+            "aup": 0.6715659298734311,
+            "aur": 0.23302441146583927,
+            "iou": 0.1680214958017071
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/seqcomb_mv_dyna_results.json",
+      "source_sha256": "e85ea17dbb8e891fe4e32712f716862e7c35053d599d4150284aa7e8226517f0",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "seqcomb_mv",
+      "method": "winit",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.290025329418224,
+          "standard_error": 0.035829418158619834
+        },
+        "aup": {
+          "mean": 0.603007003296175,
+          "standard_error": 0.07906432300715195
+        },
+        "aur": {
+          "mean": 0.27920627018542443,
+          "standard_error": 0.01686336871897292
+        },
+        "iou": {
+          "mean": 0.1695688694079717,
+          "standard_error": 0.00845042768159527
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.31068204955113166,
+            "aup": 0.6649407478380351,
+            "aur": 0.27322800778934403,
+            "iou": 0.17345815115670363
+          }
+        },
+        {
+          "split": 2,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.17584718886537506,
+            "aup": 0.31112960328727507,
+            "aur": 0.3408747547079208,
+            "iou": 0.1465850240389506
+          }
+        },
+        {
+          "split": 3,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.3626450868731094,
+            "aup": 0.7568683675614266,
+            "aur": 0.25852071517714353,
+            "iou": 0.1878665571908156
+          }
+        },
+        {
+          "split": 4,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.3584396292010122,
+            "aup": 0.7097051265899157,
+            "aur": 0.28180576416064573,
+            "iou": 0.18654572727282842
+          }
+        },
+        {
+          "split": 5,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.24251269260049169,
+            "aup": 0.5723911712042219,
+            "aur": 0.24160210909206803,
+            "iou": 0.15338888738056025
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/seqcomb_mv_winit_results.json",
+      "source_sha256": "17ca73c6b1b1a553d2cb595f0e8dbae5d4ab5b11d606ede00496e8aa1086753e",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "seqcomb_mv",
+      "method": "cortx",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.3623238919426098,
+          "standard_error": 0.0006780105507553224
+        },
+        "aup": {
+          "mean": 0.5195622793668484,
+          "standard_error": 0.001652691247953165
+        },
+        "aur": {
+          "mean": 0.34532601960627224,
+          "standard_error": 0.0005814496638862866
+        },
+        "iou": {
+          "mean": 0.1430307795226574,
+          "standard_error": 0.0003985027057527384
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.36187494435160195,
+            "aup": 0.5219111381787161,
+            "aur": 0.34421276869417267,
+            "iou": 0.14295567415157953
+          }
+        },
+        {
+          "split": 2,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.36292391112918887,
+            "aup": 0.5220331758585435,
+            "aur": 0.34543065232173276,
+            "iou": 0.14272719239691894
+          }
+        },
+        {
+          "split": 3,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.363414517165077,
+            "aup": 0.5132515147565592,
+            "aur": 0.34726896123559475,
+            "iou": 0.14397443206608296
+          }
+        },
+        {
+          "split": 4,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.36352951832196445,
+            "aup": 0.5213246408654972,
+            "aur": 0.3456650515145793,
+            "iou": 0.143755327830712
+          }
+        },
+        {
+          "split": 5,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.3598765687452167,
+            "aup": 0.5192909271749258,
+            "aur": 0.3440526642652815,
+            "iou": 0.14174127116799354
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21846132/seed_42/results/seqcomb_mv_cortx_results.json",
+      "source_sha256": "6c919c7d639764017cd9819b69968552abc7206a459137bd0b20d5cc85443864",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "seqcomb_mv",
+      "method": "sgt+grad",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.1264721191669293,
+          "standard_error": 0.009440595252197242
+        },
+        "aup": {
+          "mean": 0.2596210824592372,
+          "standard_error": 0.019770606290003517
+        },
+        "aur": {
+          "mean": 0.08516560784121678,
+          "standard_error": 0.007227905534304031
+        },
+        "iou": {
+          "mean": 0.09649307662174106,
+          "standard_error": 0.0073887718000771735
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "classifier_test_macro_f1": 0.6628696408805409,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.10981344059474986,
+            "aup": 0.21974254029210835,
+            "aur": 0.09920891599361585,
+            "iou": 0.08546249968310198
+          }
+        },
+        {
+          "split": 2,
+          "classifier_test_macro_f1": 0.9840003092939834,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.16172091850984377,
+            "aup": 0.32714800942692046,
+            "aur": 0.1028533312788732,
+            "iou": 0.12517171046386164
+          }
+        },
+        {
+          "split": 3,
+          "classifier_test_macro_f1": 0.8049045717731543,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.1104786214767396,
+            "aup": 0.22479704340422138,
+            "aur": 0.06403872363810835,
+            "iou": 0.08822646757836143
+          }
+        },
+        {
+          "split": 4,
+          "classifier_test_macro_f1": 0.9880153928786803,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.12388071958815532,
+            "aup": 0.2778529316998966,
+            "aur": 0.08387683060779937,
+            "iou": 0.0875952931145827
+          }
+        },
+        {
+          "split": 5,
+          "classifier_test_macro_f1": 0.761190009648647,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.12646689566515792,
+            "aup": 0.24856488747303926,
+            "aur": 0.07585023768768713,
+            "iou": 0.09600941226879756
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/seqcomb_mv_sgt_grad_results.json",
+      "source_sha256": "dda4b2f01789850fd3c0f2c1cf127050a1c0efacf50862413c5764e70f344817",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "lowvar",
+      "method": "ours",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.8547026047779113,
+          "standard_error": 0.018617212631231842
+        },
+        "aup": {
+          "mean": 0.6075687837737702,
+          "standard_error": 0.03671532413702536
+        },
+        "aur": {
+          "mean": 0.9062042805899463,
+          "standard_error": 0.01994113585686869
+        },
+        "iou": {
+          "mean": 0.3443637263844411,
+          "standard_error": 0.0056638473272864615
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.8919723625319343,
+            "aup": 0.5833369105004439,
+            "aur": 0.9093750642710918,
+            "iou": 0.3472601735914747
+          }
+        },
+        {
+          "split": 2,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.8883661316886055,
+            "aup": 0.6893059817996607,
+            "aur": 0.9569380185005826,
+            "iou": 0.3603115069270134
+          }
+        },
+        {
+          "split": 3,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.7884889783297986,
+            "aup": 0.48388036186781763,
+            "aur": 0.9057627698247541,
+            "iou": 0.33704199592520795
+          }
+        },
+        {
+          "split": 4,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.855022544481315,
+            "aup": 0.673850846193174,
+            "aur": 0.8350899504658112,
+            "iou": 0.32722551611810924
+          }
+        },
+        {
+          "split": 5,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.8496630068579027,
+            "aup": 0.6074698185077547,
+            "aur": 0.9238555998874914,
+            "iou": 0.34997943936040005
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21926721/seed_42/results/connectivity-rollback-v1/seed_42/lowvar_ours_results.json",
+      "source_sha256": "6bef72586c382f6da58c73171ed1cdd47ac144b1ab9ec99233afa649f02dbd02",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "lowvar",
+      "method": "ig",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.8326039242094947,
+          "standard_error": 0.05226822294584309
+        },
+        "aup": {
+          "mean": 0.4525745057888869,
+          "standard_error": 0.04999486254827669
+        },
+        "aur": {
+          "mean": 0.7990833470802018,
+          "standard_error": 0.018367788171369925
+        },
+        "iou": {
+          "mean": 0.3454098078871767,
+          "standard_error": 0.00980455246736452
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.8639191013581076,
+            "aup": 0.4369883171514119,
+            "aur": 0.8200501054512809,
+            "iou": 0.3587538210352262
+          }
+        },
+        {
+          "split": 2,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.9372359773229907,
+            "aup": 0.6140647915113255,
+            "aur": 0.7872250555210056,
+            "iou": 0.35716159668564795
+          }
+        },
+        {
+          "split": 3,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.6314191866040582,
+            "aup": 0.29887612351220216,
+            "aur": 0.7321770597269612,
+            "iou": 0.3065944521824519
+          }
+        },
+        {
+          "split": 4,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.8725565347170594,
+            "aup": 0.4591283201906831,
+            "aur": 0.831187213966214,
+            "iou": 0.35058541750907896
+          }
+        },
+        {
+          "split": 5,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.8578888210452579,
+            "aup": 0.45381497657881203,
+            "aur": 0.8247773007355471,
+            "iou": 0.35395375202347834
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/lowvar_ig_results.json",
+      "source_sha256": "422eb644b697ce8c504194cea0236504c0986470ee8446d0db31cbb1dec519a7",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "lowvar",
+      "method": "dyna",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.12402368429075092,
+          "standard_error": 0.01054698263837241
+        },
+        "aup": {
+          "mean": 0.13088099588162883,
+          "standard_error": 0.017706600311179953
+        },
+        "aur": {
+          "mean": 0.19437222006923474,
+          "standard_error": 0.014905942881667087
+        },
+        "iou": {
+          "mean": 0.09118901821424566,
+          "standard_error": 0.008591616275176057
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.11733931444112057,
+            "aup": 0.12448261375994452,
+            "aur": 0.1963707926202384,
+            "iou": 0.08522412453840177
+          }
+        },
+        {
+          "split": 2,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.15568002013858648,
+            "aup": 0.18759081535815766,
+            "aur": 0.24775019971586348,
+            "iou": 0.11466810884078343
+          }
+        },
+        {
+          "split": 3,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.09070818060019839,
+            "aup": 0.07651544152932216,
+            "aur": 0.15822409360789785,
+            "iou": 0.06310187763969104
+          }
+        },
+        {
+          "split": 4,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.1241185450488053,
+            "aup": 0.12792309999672635,
+            "aur": 0.17772286556711914,
+            "iou": 0.09174850805600485
+          }
+        },
+        {
+          "split": 5,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.1322723612250439,
+            "aup": 0.13789300876399338,
+            "aur": 0.19179314883505474,
+            "iou": 0.1012024719963471
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/lowvar_dyna_results.json",
+      "source_sha256": "8be946ad749e04b76466ce92dfb304df1b21ab1eeeb1950d23e769e603ebc5d4",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "lowvar",
+      "method": "winit",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.17812988914594233,
+          "standard_error": 0.010138164081648969
+        },
+        "aup": {
+          "mean": 0.1381458864969819,
+          "standard_error": 0.0031645332563992436
+        },
+        "aur": {
+          "mean": 0.38594498079477846,
+          "standard_error": 0.0045729958532845045
+        },
+        "iou": {
+          "mean": 0.1377981807122628,
+          "standard_error": 0.009700792404805232
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.16696907851060488,
+            "aup": 0.13935746873719715,
+            "aur": 0.3872347174367272,
+            "iou": 0.12731088219583034
+          }
+        },
+        {
+          "split": 2,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.21467040725680595,
+            "aup": 0.14691561538262993,
+            "aur": 0.386202481640981,
+            "iou": 0.1715196621393164
+          }
+        },
+        {
+          "split": 3,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.1683060259794052,
+            "aup": 0.1422764266118107,
+            "aur": 0.38454482728296097,
+            "iou": 0.12775260873387256
+          }
+        },
+        {
+          "split": 4,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.1565974435994336,
+            "aup": 0.12946579893818277,
+            "aur": 0.40026839764323846,
+            "iou": 0.11625224522997936
+          }
+        },
+        {
+          "split": 5,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.1841064903834621,
+            "aup": 0.13271412281508885,
+            "aur": 0.3714744799699845,
+            "iou": 0.14615550526231527
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/lowvar_winit_results.json",
+      "source_sha256": "80740fd440e0e59fb018cb9e2f10ea2f8572d245db01da560eb8bb86775c30d1",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "lowvar",
+      "method": "cortx",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.11238159637835736,
+          "standard_error": 0.0015054056571110331
+        },
+        "aup": {
+          "mean": 0.05904343660722068,
+          "standard_error": 0.0002769847320146798
+        },
+        "aur": {
+          "mean": 0.6666638777972225,
+          "standard_error": 4.904102651445308e-07
+        },
+        "iou": {
+          "mean": 0.07201567445248365,
+          "standard_error": 0.0019412605040323347
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.10738684377132865,
+            "aup": 0.05943429717216803,
+            "aur": 0.66666230168364,
+            "iou": 0.06484506931900978
+          }
+        },
+        {
+          "split": 2,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.11285245144772833,
+            "aup": 0.059190133880919364,
+            "aur": 0.6666647892403397,
+            "iou": 0.07525230119625727
+          }
+        },
+        {
+          "split": 3,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.11453014321529266,
+            "aup": 0.05868678633328701,
+            "aur": 0.6666649025086686,
+            "iou": 0.07304244459420442
+          }
+        },
+        {
+          "split": 4,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.11104753951045576,
+            "aup": 0.05817306117089494,
+            "aur": 0.6666632616955006,
+            "iou": 0.07144488614797592
+          }
+        },
+        {
+          "split": 5,
+          "classifier_test_macro_f1": null,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.11609100394698142,
+            "aup": 0.05973290447883408,
+            "aur": 0.6666641338579634,
+            "iou": 0.07549367100497087
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/lowvar_cortx_results.json",
+      "source_sha256": "a7bdcea3c819aa47b766351bf522a641469ee9e3c79dc758d8d21d255bb1e534",
+      "precision": "full"
+    },
+    {
+      "table": 2,
+      "dataset": "lowvar",
+      "method": "sgt+grad",
+      "seed": 42,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.414932867296517,
+          "standard_error": 0.03471925338890992
+        },
+        "aup": {
+          "mean": 0.2405694632770551,
+          "standard_error": 0.0244795956019743
+        },
+        "aur": {
+          "mean": 0.5969716398709595,
+          "standard_error": 0.023268730962889554
+        },
+        "iou": {
+          "mean": 0.2222274576584498,
+          "standard_error": 0.017890685312852143
+        }
+      },
+      "folds": [
+        {
+          "split": 1,
+          "classifier_test_macro_f1": 0.9730730190770296,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.49869096247951833,
+            "aup": 0.30319447540753114,
+            "aur": 0.6395351387588718,
+            "iou": 0.26466028510779144
+          }
+        },
+        {
+          "split": 2,
+          "classifier_test_macro_f1": 0.9100165110371777,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.28811970678196563,
+            "aup": 0.1555076879563649,
+            "aur": 0.5125055579059685,
+            "iou": 0.15736814268430074
+          }
+        },
+        {
+          "split": 3,
+          "classifier_test_macro_f1": 0.8713616163366773,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.41758216876313814,
+            "aup": 0.22802822786946442,
+            "aur": 0.6352129989452288,
+            "iou": 0.22254637989153464
+          }
+        },
+        {
+          "split": 4,
+          "classifier_test_macro_f1": 0.9711961185788032,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.42543514991045134,
+            "aup": 0.25264544709604675,
+            "aur": 0.6131793612466827,
+            "iou": 0.2246272556136052
+          }
+        },
+        {
+          "split": 5,
+          "classifier_test_macro_f1": 0.9381313335152524,
+          "n_samples": 750,
+          "metrics": {
+            "auprc": 0.4448363485475116,
+            "aup": 0.26347147805586846,
+            "aur": 0.5844251424980452,
+            "iou": 0.24193522499501705
+          }
+        }
+      ],
+      "source": "cluster_runs/timex_table2_21899369/seed_42/results/repaired-v1/seed_42/lowvar_sgt_grad_results.json",
+      "source_sha256": "b31b37cfc660dd53bef0074b2892882740823c51fd8b89373e35315d61399ade",
+      "precision": "full"
+    }
+  ],
+  "additional_seeds": [
+    {
+      "dataset": "lowvar",
+      "method": "ours",
+      "seed": 43,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.8710523816143452,
+          "standard_error": 0.01052060580615592
+        },
+        "aup": {
+          "mean": 0.6452118262635386,
+          "standard_error": 0.0343892152864913
+        },
+        "aur": {
+          "mean": 0.8756813262113777,
+          "standard_error": 0.012243117432167385
+        },
+        "iou": {
+          "mean": 0.3422139503732323,
+          "standard_error": 0.0025432979821728473
+        }
+      },
+      "source": "cluster_runs/timex_table2_21927128/seed_43/results/connectivity-rollback-v1/seed_43/lowvar_ours_results.json",
+      "source_sha256": "e020972aee6b91a9549f003d6a66d20e25e83543c22c7be60a12d2966613687d"
+    },
+    {
+      "dataset": "lowvar",
+      "method": "ours",
+      "seed": 44,
+      "n_folds": 5,
+      "metrics": {
+        "auprc": {
+          "mean": 0.8704017716991602,
+          "standard_error": 0.016159144541990952
+        },
+        "aup": {
+          "mean": 0.6650913492637062,
+          "standard_error": 0.02748396101833513
+        },
+        "aur": {
+          "mean": 0.8747661539859619,
+          "standard_error": 0.01363248681958748
+        },
+        "iou": {
+          "mean": 0.338785741755863,
+          "standard_error": 0.005082773243353792
+        }
+      },
+      "source": "cluster_runs/timex_table2_21927128/seed_44/results/connectivity-rollback-v1/seed_44/lowvar_ours_results.json",
+      "source_sha256": "d3ac9d81e721802cce07099da32cf84491ce0492970a2f4fe6af7375398f8677"
+    }
+  ]
+}

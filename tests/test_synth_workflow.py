@@ -22,7 +22,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 import torch
 import torch.nn.functional as F
 
-from experiments import table2_workflow as workflow
+from experiments import synth_workflow as workflow
 from experiments.evaluation.summarize_synth import comparison_rows, PUBLISHED_BY_TABLE
 from txai.baselines.synth_baselines import (
     absolute_input_gradients,
@@ -40,7 +40,7 @@ ROOT = Path(__file__).resolve().parents[1]
 torch.set_num_threads(1)
 
 
-def small_model(d=4, connectivity="temporal-l1-v1", training="repaired-v1"):
+def small_model(d=4, reference_eval=True):
     args = deepcopy(transformer_default_args)
     args.update(nlayers=1, trans_dim_feedforward=16, trans_dropout=0.5)
     model = TimeXModel(
@@ -51,8 +51,7 @@ def small_model(d=4, connectivity="temporal-l1-v1", training="repaired-v1"):
         gsat_r=0.5,
         transformer_args=args,
         masktoken_stats=(torch.zeros(6, d), torch.ones(6, d)),
-        connectivity_version=connectivity,
-        training_version=training,
+        reference_eval=reference_eval,
         loss_weight_dict={"gsat": 1.0, "connect": 2.0},
     )
     model.encoder_main.requires_grad_(False)
@@ -63,40 +62,20 @@ class NumericalChecks(unittest.TestCase):
     def setUp(self):
         seed_everything(42)
 
-    def test_temporal_connectivity_and_invariances(self):
-        p = torch.tensor(
-            [
-                [[0.0, 1.0], [1.0, 0.0], [1.0, 1.0]],
-                [[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]],
-            ],
-            requires_grad=True,
-        )
-        loss = ConnectLoss("temporal-l1-v1")
-        torch.testing.assert_close(loss(p), torch.tensor(0.5))
-        torch.testing.assert_close(loss(p), loss(p.flip(0)))
-        torch.testing.assert_close(loss(p), loss(p.repeat(2, 1, 1)))
-        torch.testing.assert_close(loss(p[:1]), torch.tensor(0.5))
-        zero = loss(p[:, :1])
-        self.assertEqual(zero.item(), 0)
-        zero.backward()
-        self.assertTrue(torch.equal(p.grad, torch.zeros_like(p)))
-        # Constant temporal masks with different samples must have zero penalty.
-        constant = torch.tensor([0.0, 1.0]).view(2, 1, 1).expand(2, 5, 4)
-        self.assertEqual(loss(constant).item(), 0)
-        self.assertEqual(loss(constant).device, constant.device)
-
-    def test_legacy_univariate_and_layout(self):
-        mask = torch.rand(3, 6, 1)
-        expected = (mask[:, 1:] - mask[:, :-1]).norm(p=2) / (3 * 5)
-        torch.testing.assert_close(ConnectLoss()(mask), expected)
+    def test_native_connectivity_formula_and_layout(self):
         for d in (1, 4):
             model = small_model(d)
-            btf = torch.rand(3, 6, d)
-            native = btf if d == 1 else btf.transpose(0, 1)
+            native = torch.rand(3, 6, d, requires_grad=True)
+            differences = native[:, 1:] - native[:, :-1]
+            expected = differences.norm(p=2) / differences.numel()
+            actual = model.loss_components({"mask_logits": native})["connect"]
+            torch.testing.assert_close(actual, expected)
             torch.testing.assert_close(
-                model.loss_components({"mask_logits": native})["connect"],
-                ConnectLoss("temporal-l1-v1")(btf),
+                torch.autograd.grad(actual, native, retain_graph=True)[0],
+                torch.autograd.grad(expected, native)[0],
             )
+        x = torch.ones(3, 1, 4, requires_grad=True)
+        self.assertEqual(ConnectLoss()(x).item(), 0)
 
     def test_frozen_reference_and_checkpoint_roundtrip(self):
         model = small_model()
@@ -114,19 +93,11 @@ class NumericalChecks(unittest.TestCase):
             state, config = torch.load(path, map_location="cpu")
             restored = TimeXModel(**config)
             restored.load_state_dict(state)
-            self.assertEqual(restored.connectivity_version, "temporal-l1-v1")
+            self.assertTrue(restored.reference_eval)
             self.assertEqual(restored.loss_weight_dict["connect"], 2)
-            for key in (
-                "connectivity_version",
-                "training_version",
-                "training_loss_weights",
-                "loss_weight_dict",
-            ):
-                config.pop(key)
-            old = TimeXModel(**config)
-            old.load_state_dict(state)
-            self.assertEqual(old.connectivity_version, "legacy")
-            self.assertEqual(old.training_version, "legacy")
+        original = small_model(reference_eval=False)
+        original.train()
+        self.assertTrue(original.encoder_main.training)
 
     def test_actual_trainer_clips_after_backward(self):
         trainer = importlib.import_module("txai.trainers.train_mv6_consistency")
@@ -189,7 +160,7 @@ class NumericalChecks(unittest.TestCase):
     def test_infonce_loss_and_both_view_gradients_match_author_formula(self):
         # Execute the actual released class and helper AST without its missing
         # packaging-only `losses.Loss` dependency; no formula is reimplemented.
-        tree = ast.parse((ROOT / "experiments/other_baselines/infonce.py").read_text())
+        tree = ast.parse((ROOT / "tests/fixtures/infonce_reference.py").read_text())
         nodes = [
             n
             for n in tree.body
@@ -290,6 +261,7 @@ class NumericalChecks(unittest.TestCase):
                     epochs=2,
                     max_attempts=3,
                     min_val_f1=0.95,
+                    original_predictor=False,
                 )
                 module.main(args)
                 self.assertEqual(seeds, [44, 1044])
@@ -327,11 +299,79 @@ class NumericalChecks(unittest.TestCase):
                 epochs=1,
                 max_attempts=3,
                 min_val_f1=0.95,
+                original_predictor=False,
             )
             with self.assertRaisesRegex(RuntimeError, "after 3 attempts"):
                 module.main(args)
             self.assertFalse((Path(tmp) / "transformer_split=1.pt").exists())
             self.assertEqual(len(list(Path(tmp).glob("*_attempt=*.pt"))), 3)
+
+    def test_original_predictor_records_low_quality_without_retry(self):
+        module = importlib.import_module("experiments.seqcomb_mv.train_transformer")
+        data = dict(
+            train_loader=torch.utils.data.TensorDataset(
+                torch.zeros(4, 6, 4), torch.ones(4, 6), torch.arange(4)
+            ),
+            val=(torch.zeros(6, 4, 4), torch.ones(6, 4), torch.arange(4)),
+        )
+        data["test"] = data["val"]
+        with tempfile.TemporaryDirectory() as tmp, patch.object(
+            module, "process_Synth", return_value=data
+        ), patch.object(
+            module, "train", side_effect=lambda model, *a, **kw: (model, [], [0.7])
+        ) as train, patch(
+            "torch.cuda.is_available", return_value=False
+        ):
+            module.main(
+                SimpleNamespace(
+                    models_path=Path(tmp),
+                    split_no=3,
+                    seed=42,
+                    data_path=Path(tmp),
+                    epochs=1,
+                    max_attempts=3,
+                    min_val_f1=0.95,
+                    original_predictor=True,
+                )
+            )
+            quality = json.loads(
+                (Path(tmp) / "transformer_split=3.quality.json").read_text()
+            )
+            self.assertFalse(quality["qualified"])
+            self.assertEqual(train.call_count, 1)
+            self.assertTrue((Path(tmp) / "transformer_split=3.pt").exists())
+
+    def test_original_sgt_matches_ce_detached_kl_update(self):
+        from experiments.other_baselines.train_synth_baselines import train_sgt
+        from txai.baselines.synth_baselines import make_transformer
+
+        x = torch.randn(4, 6, 1)
+        times = torch.arange(1, 7.0).repeat(4, 1)
+        y = torch.arange(4)
+        seed_everything(42)
+        reference = make_transformer("freqshape", 1, 6)
+        optimizer = torch.optim.AdamW(reference.parameters(), lr=1e-3, weight_decay=0.1)
+        reference.eval()
+        scores = absolute_input_gradients(reference, x, times, y)
+        masked = mask_bottom_features(x, scores)
+        reference.train()
+        logits = reference(x, times, captum_input=True)
+        masked_logits = reference(masked, times, captum_input=True)
+        loss = F.cross_entropy(logits, y) + F.kl_div(
+            masked_logits.log_softmax(1),
+            logits.detach().softmax(1),
+            reduction="batchmean",
+        )
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_everything(42)
+            output = Path(tmp) / "sgt.pt"
+            train_sgt("freqshape", [(x, times, y)], (1, 6), output, 1, "cpu", None)
+            actual = torch.load(output)
+            for name, value in reference.state_dict().items():
+                torch.testing.assert_close(actual[name], value, rtol=0, atol=0)
 
     def test_sgt_and_cortx_reduced_cpu_training(self):
         from experiments.other_baselines.train_synth_baselines import (
@@ -405,8 +445,8 @@ class RunnerChecks(unittest.TestCase):
             str(self.root / "results"),
             "--models-dir",
             str(self.root / "models"),
-            "--protocol",
-            "repaired-v1",
+            "--table",
+            "2",
             "--datasets",
             "seqcomb_mv",
             "--methods",
@@ -454,10 +494,19 @@ class RunnerChecks(unittest.TestCase):
             (path / "generator.pt").write_text("generator")
         else:
             fold = option("--split-no")
-            prefix = "transformer" if name == "train_transformer.py" else "bc_full"
+            if name == "train_transformer.py":
+                prefix = (
+                    "Scomb_transformer"
+                    if Path(command[1]).parent.name in {"freqshape", "scs_better"}
+                    else "transformer"
+                )
+            elif name == "train_synth_baselines.py":
+                prefix = option("--method")
+            else:
+                prefix = "bc_full"
             path = Path(option("--models-path")) / f"{prefix}_split={fold}.pt"
             path.write_text(f"{prefix} {len(self.calls)}")
-            if prefix == "transformer":
+            if prefix.endswith("transformer"):
                 workflow.write_json(
                     path.with_suffix(".quality.json"),
                     dict(qualified=True, validation_macro_f1=0.99),
@@ -472,13 +521,13 @@ class RunnerChecks(unittest.TestCase):
 
     def test_resume_integrity_dependencies_and_seed_isolation(self):
         self.assertEqual(self.run_workflow(), 0)
-        self.assertEqual(len(self.calls), 5)
+        self.assertEqual(len(self.calls), 6)
         self.assertEqual(self.run_workflow(), 0)
-        self.assertEqual(len(self.calls), 5)
-        predictor = next((self.root / "models").rglob("transformer*.pt"))
+        self.assertEqual(len(self.calls), 6)
+        predictor = next((self.root / "models").rglob("original/transformer*.pt"))
         predictor.write_text("externally replaced")
         self.assertEqual(self.run_workflow(), 0)
-        # Predictor, TimeX, two evaluations; generator reused.
+        # Only the original predictor, TimeX and its evaluation change.
         self.assertEqual(len(self.calls), 9)
         self.assertEqual(
             sum(Path(c[1]).name == "winit_wrapper.py" for c in self.calls), 1
@@ -495,11 +544,11 @@ class RunnerChecks(unittest.TestCase):
         self.assertEqual(self.run_workflow(), 0)
         self.assertEqual(len(self.calls), 9)
         self.assertEqual(self.run_workflow(self.arguments("--seed", "43")), 0)
-        self.assertEqual(len(self.calls), 14)
+        self.assertEqual(len(self.calls), 15)
 
     def test_partial_folds_and_diagnostics_never_complete(self):
         self.assertEqual(self.run_workflow(), 0)
-        path = self.root / "results/repaired-v1/seed_42/seqcomb_mv_ours_results.json"
+        path = self.root / "results/selected-v1/seed_42/seqcomb_mv_ours_results.json"
         self.assertEqual(json.loads(path.read_text())["completion_status"], "partial")
         self.assertEqual(self.run_workflow(self.arguments("--folds", "2,3,4,5")), 0)
         self.assertEqual(json.loads(path.read_text())["completion_status"], "complete")
@@ -513,23 +562,25 @@ class RunnerChecks(unittest.TestCase):
 
     def test_evaluate_rejects_stale_predictor(self):
         self.assertEqual(self.run_workflow(), 0)
-        predictor = next((self.root / "models").rglob("transformer*.pt"))
+        predictor = next((self.root / "models").rglob("original/transformer*.pt"))
         workflow.sidecar(predictor).unlink()
         self.assertEqual(self.run_workflow(self.arguments("--stage", "evaluate")), 1)
-        self.assertEqual(len(self.calls), 5)
+        self.assertEqual(len(self.calls), 6)
 
     def test_training_invalidates_unselected_method_summary(self):
         self.assertEqual(self.run_workflow(self.arguments("--folds", "1,2,3,4,5")), 0)
         summary = (
-            self.root / "results/repaired-v1/seed_42/seqcomb_mv_winit_results.json"
+            self.root / "results/selected-v1/seed_42/seqcomb_mv_winit_results.json"
         )
         self.assertEqual(
             json.loads(summary.read_text())["completion_status"], "complete"
         )
-        predictor = next((self.root / "models").rglob("transformer_split=1.pt"))
+        predictor = next(
+            (self.root / "models").rglob("qualified/transformer_split=1.pt")
+        )
         predictor.write_text("changed predictor")
         self.assertEqual(
-            self.run_workflow(self.arguments("--stage", "train", "--methods", "ours")),
+            self.run_workflow(self.arguments("--stage", "train", "--methods", "ig")),
             0,
         )
         self.assertEqual(
@@ -559,7 +610,7 @@ class RunnerChecks(unittest.TestCase):
         self.assertEqual(result, 1)
         records = json.loads(
             (
-                self.root / "results/repaired-v1/seed_42/seqcomb_mv_ours_results.json"
+                self.root / "results/selected-v1/seed_42/seqcomb_mv_ours_results.json"
             ).read_text()
         )
         self.assertEqual([f["split"] for f in records["folds"]], [2])
@@ -567,35 +618,50 @@ class RunnerChecks(unittest.TestCase):
             list((self.root / "models").rglob("transformer_split=1.pt.run.json"))
         )
 
-    def test_connectivity_rollback_is_default_and_isolated(self):
-        with patch.object(sys, "argv", ["runner"]):
-            self.assertEqual(workflow.parse_args().protocol, "connectivity-rollback-v1")
+    def test_selected_recipes_and_predictor_isolation(self):
+        self.assertEqual(workflow.predictor_policy("seqcomb_mv", "ours"), "original")
+        self.assertEqual(workflow.predictor_policy("seqcomb_mv", "cortx"), "original")
+        self.assertEqual(workflow.predictor_policy("seqcomb_mv", "winit"), "qualified")
+        self.assertEqual(workflow.predictor_policy("lowvar", "sgt+grad"), "independent")
+        self.assertEqual(
+            workflow.recipe_name("freqshape", "sgt+grad"), "ce-detached-kl-final"
+        )
+        self.assertEqual(workflow.recipe_name("lowvar", "ours"), "lowvar-timex")
         self.assertEqual(self.run_workflow(), 0)
+        commands = [c for c in self.calls if Path(c[1]).name == "train_transformer.py"]
+        self.assertEqual(sum("--original-predictor" in c for c in commands), 1)
+        self.assertEqual(len(commands), 2)
+
+    def test_table1_all_methods_resume(self):
         args = self.arguments(
-            "--protocol", "connectivity-rollback-v1", "--folds", "1,2,3,4,5"
+            "--table",
+            "1",
+            "--datasets",
+            "freqshape",
+            "--methods",
+            ",".join(workflow.METHODS),
         )
         self.assertEqual(self.run_workflow(args), 0)
-        commands = [c for c in self.calls if Path(c[1]).name == "bc_model_ptype.py"]
-        self.assertEqual(
-            commands[0][commands[0].index("--connectivity-version") + 1],
-            "temporal-l1-v1",
+        count = len(self.calls)
+        self.assertEqual(self.run_workflow(args), 0)
+        self.assertEqual(len(self.calls), count)
+        summaries = list(
+            (self.root / "results/selected-v1/seed_42").glob("freqshape*_results.json")
         )
-        for command in commands[1:]:
-            self.assertEqual(
-                command[command.index("--connectivity-version") + 1], "legacy"
+        self.assertEqual(len(summaries), 6)
+        self.assertTrue(
+            all(
+                json.loads(p.read_text())["cross_validation"]["n_folds"] == 1
+                for p in summaries
             )
-            self.assertEqual(
-                command[command.index("--training-version") + 1], "repaired-v1"
-            )
-        root = self.root / "results"
-        previous = root / "repaired-v1/seed_42/seqcomb_mv_ours_results.json"
-        current = root / "connectivity-rollback-v1/seed_42/seqcomb_mv_ours_results.json"
-        self.assertEqual(
-            json.loads(previous.read_text())["cross_validation"]["n_folds"], 1
         )
-        self.assertEqual(
-            json.loads(current.read_text())["completion_status"], "complete"
+
+    def test_sgt_runs_without_reference_predictor(self):
+        self.assertEqual(self.run_workflow(self.arguments("--methods", "sgt+grad")), 0)
+        self.assertFalse(
+            any(Path(c[1]).name == "train_transformer.py" for c in self.calls)
         )
+        self.assertEqual(len(self.calls), 2)
 
     def test_dry_run_has_no_mutations(self):
         self.assertEqual(self.run_workflow(self.arguments("--dry-run")), 0)
@@ -608,7 +674,7 @@ class RunnerChecks(unittest.TestCase):
         record = dict(
             dataset="seqcomb_mv",
             method="ours",
-            protocol="repaired-v1",
+            protocol="selected-v1",
             completion_status="complete",
             provenance_status="repaired",
             provenance=[{}] * 5,
@@ -635,15 +701,29 @@ class RunnerChecks(unittest.TestCase):
             ][0]["row_status"]
 
         self.assertEqual(status(), "matched")
-        record["protocol"] = "connectivity-rollback-v1"
-        workflow.write_json(path, record)
-        self.assertEqual(status(), "matched")
         record["cross_validation"]["metrics"]["aur"]["mean"] += 0.06
         workflow.write_json(path, record)
         self.assertEqual(status(), "outside tolerance")
         record["provenance_status"] = "unresolved_multivariate_recipe"
         workflow.write_json(path, record)
         self.assertEqual(status(), "unresolved provenance")
+
+
+class ReportChecks(unittest.TestCase):
+    def test_recorded_folds_and_report_regeneration(self):
+        from experiments.evaluation.report_synth import render, validate
+
+        data = json.loads((ROOT / "experiments/reproduction_results.json").read_text())
+        validate(data)
+        self.assertEqual(render(data), (ROOT / "results_reproduction.md").read_text())
+        broken = deepcopy(data)
+        broken["rows"][0]["folds"].pop()
+        with self.assertRaises(ValueError):
+            validate(broken)
+        broken = deepcopy(data)
+        broken["rows"][0]["seed"] = 43
+        with self.assertRaises(ValueError):
+            validate(broken)
 
 
 if __name__ == "__main__":

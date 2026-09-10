@@ -1,90 +1,75 @@
 # Reproducing Table 1
 
-Table 1 evaluates FreqShapes and SeqComb-UV over the five published folds with
-TimeX, Integrated Gradients, Dynamask, WinIT, CoRTX, and SGT + Grad. The
-Dataverse directory `SeqCombSingle/` is the SeqComb-UV data used by the
-`scs_better` experiment scripts.
-
-All commands below run from the repository root. Data defaults to `dataset/`;
-set `TIMEX_DATA_ROOT=/another/path` to override it.
-
-The complete functional workflow can be launched with:
+FreqShapes and SeqComb-UV use all six methods: TimeX, IG, Dynamask, WinIT, CoRTX
+and SGT + Grad. The fixed recipes correspond to the completed seed-42 rows in
+[the report](../results_reproduction.md).
 
 ```bash
-./run_table1.sh
+uv sync
+git submodule update --init --recursive
+./run_table1.sh --help
+./run_table1.sh --seed 42 --dry-run
+./run_table1.sh --seed 42
+# On the configured GPU cluster:
+sbatch sj_timex --seed 42
 ```
 
-Runs use base seed `0` by default. Pass `--seed N` to select another seed;
-fold `i` uses `N + i - 1`, making each fold reproducible independently.
+`TIMEX_DATA_ROOT` defaults to `dataset/`, containing `FreqShape/split=1.pt` through
+`split=5.pt` and `SeqCombSingle/split=1.pt` through `split=5.pt`. Set it explicitly
+for another location. The cluster wrapper uses its existing persistent data root.
 
-Use `./run_table1.sh --help` for dataset, method, and stage selection. Every
-command has its own log; evaluations write JSON records plus `table1_summary.csv`
-and `table1_summary.md` into the results directory. Training stages skip any
-method whose five split checkpoints already exist, so adding one method to an
-existing run does not retrain the predictors.
+The common runner supports `--datasets freqshape,seqcomb_uv`, `--methods`,
+`--folds 1,2,3,4,5`, `--stage all|train|evaluate`, `--seed`, `--data-root`,
+`--models-dir` and `--results-dir`. Default base seed is **42**; fold i uses
+`seed+i-1`. Results default to `results/table1/selected-v1/seed_42/` and models to
+`results/table1/models/selected-v1/seed_42/`. Predictors are shared only between
+methods with identical dependency recipes. Reuse requires matching artifact,
+source, configuration and data hashes. Different seeds never reuse checkpoints.
 
-## First smoke test
+| Stage | FreqShapes | SeqComb-UV |
+|---|---|---|
+| Predictor | Original single initialization; 100 epochs | Original single initialization; 200 epochs |
+| TimeX | Original connectivity/dropout, no effective clipping; 50 epochs | Same; 50 epochs |
+| SGT | CE + detached KL, final checkpoint; 100 epochs | Same; 200 epochs |
+| CoRTX | 100 encoder / 50 decoder epochs | Same |
+| WinIT | 1000 generator epochs | Same |
 
-Confirm that both datasets and their ground-truth masks load:
+Architectures, optimizers and validation selection for predictors/TimeX remain
+those used by the original scripts. CoRTX and SGT use their own checkpoints.
+SGT has no reference-predictor dependency. CoRTX preserves the reconstruction
+recipe despite its remaining score gap. See [findings](../reproduction_findings.md).
+
+For a reduced attribution check after fresh training:
 
 ```bash
-uv run python -c "from txai.utils.data import process_Synth; from txai.utils.constants import dataset_path; print(process_Synth(1, base_path=dataset_path('FreqShape'))['test'][0].shape); print(process_Synth(1, base_path=dataset_path('SeqCombSingle'))['test'][0].shape)"
+./run_table1.sh --datasets freqshape --methods ours --folds 1 --stage evaluate --max-samples 2
 ```
 
-## Train reference predictors and TimeX
+Reduced evaluations and incomplete folds never count as full results. Old
+checkpoint formats are not migrated; use fresh artifacts from the cleaned code.
+The report preserves the measured original results until a new GPU run verifies
+numerical reproduction.
 
 ```bash
-uv run python experiments/freqshape/train_transformer.py
-uv run python experiments/freqshape/bc_model_ptype.py
-uv run python experiments/scs_better/train_transformer.py
-uv run python experiments/scs_better/bc_model_ptype.py
+PYTHONPATH=. uv run python -m unittest discover -s tests -p 'test_*.py' -v
+PYTHONPATH=. uv run python experiments/evaluation/report_synth.py --check
 ```
 
-These reproduce the paper settings: five folds; 100/200 predictor epochs for
-FreqShapes/SeqComb-UV; and 50 TimeX epochs. Checkpoints are written below each
-experiment's `models/` directory.
-
-## Train the CoRTX and SGT baselines
+## End-to-end diagnostic check
 
 ```bash
-uv run python experiments/other_baselines/train_synth_baselines.py --dataset freqshape --method cortx --seed 42
-uv run python experiments/other_baselines/train_synth_baselines.py --dataset freqshape --method sgt --seed 42
-uv run python experiments/other_baselines/train_synth_baselines.py --dataset seqcomb_uv --method cortx --seed 42
-uv run python experiments/other_baselines/train_synth_baselines.py --dataset seqcomb_uv --method sgt --seed 42
+PYTHONPATH=. uv run python tests/smoke_synth_cli.py
 ```
 
-CoRTX warm-starts from the reference predictor and trains 100 encoder epochs at
-temperature 0.7 plus 50 decoder epochs; it therefore needs
-`Scomb_transformer_split={i}.pt` to exist first. SGT trains its own classifier
-from scratch and gets the same optimizer settings and epoch budget as the
-predictor it stands in for (100 for FreqShapes, 200 for SeqComb-UV).
+This CPU check creates temporary data and runs the actual training and evaluation
+entry points for all four datasets and all six methods. Training uses one epoch;
+attribution uses two examples. It verifies fresh-checkpoint loading, finite
+metrics, and diagnostic status in the generated summaries. These outputs never
+replace the recorded five-fold results. Logs and checkpoints remain under the
+printed `/tmp/timex-cli-smoke-*` directory. Use `--datasets lowvar` or
+`--methods ours ig` for a smaller check.
 
-## Evaluate explanations
-
-Run all folds by supplying the fold-1 checkpoint; the evaluator substitutes
-`split=2` through `split=5` automatically:
-
-```bash
-uv run python experiments/evaluation/saliency_exp_synth.py --dataset freqshape --exp_method ours --split_no -1 --model_path experiments/freqshape/models/bc_full_split=1.pt
-uv run python experiments/evaluation/saliency_exp_synth.py --dataset freqshape --exp_method ig --split_no -1 --model_path experiments/freqshape/models/Scomb_transformer_split=1.pt
-uv run python experiments/evaluation/saliency_exp_synth.py --dataset freqshape --exp_method dyna --split_no -1 --model_path experiments/freqshape/models/Scomb_transformer_split=1.pt
-
-uv run python experiments/evaluation/saliency_exp_synth.py --dataset scs_better --exp_method ours --split_no -1 --model_path experiments/scs_better/models/bc_full_split=1.pt
-uv run python experiments/evaluation/saliency_exp_synth.py --dataset scs_better --exp_method ig --split_no -1 --model_path experiments/scs_better/models/Scomb_transformer_split=1.pt
-uv run python experiments/evaluation/saliency_exp_synth.py --dataset scs_better --exp_method dyna --split_no -1 --model_path experiments/scs_better/models/Scomb_transformer_split=1.pt
-
-uv run python experiments/evaluation/saliency_exp_synth.py --dataset freqshape --exp_method cortx --split_no -1 --model_path experiments/freqshape/models/cortx_split=1.pt
-uv run python experiments/evaluation/saliency_exp_synth.py --dataset freqshape --exp_method sgt+grad --split_no -1 --model_path experiments/freqshape/models/sgt_split=1.pt
-```
-
-CoRTX and SGT + Grad take their *own* checkpoints, not the predictor's.
-
-WinIT additionally requires `git submodule update --init --recursive` and a
-trained generator per fold via `experiments/evaluation/winit_wrapper.py`.
-
-The committed `cortx_exp.py` and `train_SGT.py` are one-fold research snapshots
-with hard-coded absolute paths and are not used. The reimplementations in
-`txai/baselines/synth_baselines.py` stand in: CoRTX uses a local symmetric
-in-batch InfoNCE because the legacy snapshot's PyGCL dependency is absent, and
-SGT is evaluated with absolute gradients from the trained model rather than with
-the masked training input. Both caveats also apply to Table 2.
+Both Slurm wrappers now archive the submitted source once and run every seed
+from that saved snapshot. The cluster-wrapper tests simulate edits to the live
+checkout between seeds and verify that archived results still use the original
+snapshot. These tests run locally without submitting cluster jobs.

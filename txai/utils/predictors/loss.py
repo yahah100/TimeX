@@ -326,22 +326,19 @@ class ConnectLoss_Extended(nn.Module):
 
 
 class ConnectLoss(nn.Module):
-    """Versioned connectivity; temporal-l1-v1 accepts (batch, time, features)."""
+    """Released global-L2 penalty on the mask generator's native layout.
 
-    def __init__(self, version="legacy"):
-        super().__init__()
-        if version not in {"legacy", "temporal-l1-v1"}:
-            raise ValueError(f"Unknown connectivity version: {version}")
-        self.version = version
+    For multivariate masks axis 1 is the batch axis. This behavior is retained
+    to reproduce the selected experiments; see reproduction_findings.md.
+    """
 
     def forward(self, logits):
         if logits.ndim != 3 or not logits.numel():
             raise ValueError("Connectivity requires a nonempty 3-D mask")
         differences = logits[:, 1:, :] - logits[:, :-1, :]
-        if self.version == "legacy":
-            return differences.norm(p=2).sum() / differences.numel()
-        # Paper normalization includes all T positions, including the first.
-        return differences.abs().sum() / logits.numel()
+        if not differences.numel():
+            return logits.sum() * 0
+        return differences.norm(p=2).sum() / differences.numel()
 
 
 class DimEntropy(nn.Module):

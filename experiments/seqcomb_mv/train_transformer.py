@@ -20,6 +20,11 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--split-no", type=int, choices=range(1, 6))
+    parser.add_argument(
+        "--original-predictor",
+        action="store_true",
+        help="Use the original single initialization; record quality without rejecting it",
+    )
     parser.add_argument("--max-attempts", type=int, choices=range(1, 4), default=3)
     parser.add_argument("--min-val-f1", type=float, default=0.95)
     parser.add_argument("--epochs", type=int, default=1000)
@@ -35,6 +40,8 @@ def main(args):
     args.models_path.mkdir(parents=True, exist_ok=True)
     splits = [args.split_no] if args.split_no else range(1, 6)
     for split in splits:
+        if args.original_predictor:
+            seed_everything(args.seed + split - 1)
         data = process_Synth(split_no=split, device=device, base_path=args.data_path)
         train_loader = torch.utils.data.DataLoader(
             data["train_loader"], batch_size=64, shuffle=True
@@ -42,9 +49,10 @@ def main(args):
         val, test = data["val"], data["test"]
         attempts = []
         quality_path = args.models_path / f"transformer_split={split}.quality.json"
-        for attempt in range(args.max_attempts):
+        for attempt in range(1 if args.original_predictor else args.max_attempts):
             attempt_seed = args.seed + split - 1 + 1000 * attempt
-            seed_everything(attempt_seed)
+            if not args.original_predictor:
+                seed_everything(attempt_seed)
             model = TransformerMVTS(
                 d_inp=val[0].shape[-1],
                 max_len=val[0].shape[0],
@@ -97,12 +105,12 @@ def main(args):
             quality_path.write_text(
                 json.dumps(quality, indent=2, allow_nan=False) + "\n"
             )
-            if quality["qualified"]:
+            if quality["qualified"] or args.original_predictor:
                 shutil.copy2(
                     save_path, args.models_path / f"transformer_split={split}.pt"
                 )
                 print(
-                    f"Split {split} accepted attempt {attempt}: validation macro-F1 {score:.4f}"
+                    f"Split {split} selected attempt {attempt}: validation macro-F1 {score:.4f}"
                 )
                 break
         else:

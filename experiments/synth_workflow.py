@@ -1,4 +1,4 @@
-"""Traceable Table 2 dependency runner. Dry runs need only the Python standard library."""
+"""Run the selected five-fold recipes for synthetic Tables 1 and 2."""
 
 import argparse
 import hashlib
@@ -13,16 +13,40 @@ from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASETS = {
+    "freqshape": ("FreqShape", "freqshape", 100),
+    "seqcomb_uv": ("SeqCombSingle", "scs_better", 200),
     "seqcomb_mv": ("SeqCombMV", "seqcomb_mv", 1000),
     "lowvar": ("LowVarDetect", "lowvardetect", 120),
 }
 METHODS = ("ours", "ig", "dyna", "winit", "cortx", "sgt+grad")
-REPRODUCTION_PROTOCOLS = ("repaired-v1", "connectivity-rollback-v1")
-PROTOCOLS = REPRODUCTION_PROTOCOLS + (
-    "legacy-control",
-    "connectivity-control",
-    "sgt-control",
-)
+TABLE_DATASETS = {1: ("freqshape", "seqcomb_uv"), 2: ("seqcomb_mv", "lowvar")}
+PROTOCOL = "selected-v1"
+
+
+def predictor_policy(dataset: str, method: str) -> str:
+    """Select the predictor that produced this method's retained full run."""
+    if method == "sgt+grad":
+        return "independent"
+    if dataset in TABLE_DATASETS[1] or (
+        dataset == "seqcomb_mv" and method in {"ours", "cortx"}
+    ):
+        return "original"
+    return "qualified"
+
+
+def recipe_name(dataset: str, method: str) -> str:
+    """Name the fixed training recipe recorded in each result."""
+    if method == "ours":
+        return "lowvar-timex" if dataset == "lowvar" else "original-timex"
+    if method == "sgt+grad":
+        return (
+            "ce-detached-kl-final"
+            if dataset in TABLE_DATASETS[1]
+            else "poly1-kl-validation"
+        )
+    if method == "cortx":
+        return "reconstruction-" + predictor_policy(dataset, method)
+    return method + "-" + predictor_policy(dataset, method)
 
 
 def digest(path):
@@ -63,7 +87,7 @@ def reusable(path, identity):
 def quarantine(path):
     """Preserve stale artifacts, attempts and diagnostics before replacing a stage."""
     related = list(path.parent.glob(path.name + "*"))
-    if path.name.startswith("transformer_split="):
+    if "transformer_split=" in path.name:
         related += list(path.parent.glob(path.stem + "*"))
     related = sorted(set(related))
     if related:
@@ -80,7 +104,7 @@ def quarantine(path):
 def source_identity(stage, experiment):
     # Generator identity deliberately excludes predictor/TimeX implementation.
     common = [
-        "experiments/table2_workflow.py",
+        "experiments/synth_workflow.py",
         "txai/utils/data",
         "txai/utils/reproducibility.py",
         "pyproject.toml",
@@ -227,15 +251,12 @@ def aggregate(records, dataset, method, args):
         dataset=dataset,
         method=method,
         base_seed=args.seed,
-        protocol=args.protocol,
+        protocol=PROTOCOL,
+        recipe=recipe_name(dataset, method),
         completion_status="complete" if complete else "partial",
         provenance_status="unresolved_multivariate_recipe"
-        if method == "cortx"
-        else (
-            args.protocol
-            if args.protocol in REPRODUCTION_PROTOCOLS
-            else "diagnostic_control"
-        ),
+        if method == "cortx" and dataset in TABLE_DATASETS[2]
+        else "selected_recipe",
         folds=folds,
         cross_validation=dict(n_folds=len(folds), metrics=metrics),
         pooled=dict(
@@ -249,19 +270,15 @@ def aggregate(records, dataset, method, args):
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--table", type=int, choices=(1, 2), required=True)
     p.add_argument("--datasets", default="all")
     p.add_argument("--methods", default=",".join(METHODS))
     p.add_argument("--folds", default="1,2,3,4,5")
     p.add_argument("--stage", choices=("all", "train", "evaluate"), default="all")
-    p.add_argument("--protocol", choices=PROTOCOLS, default="connectivity-rollback-v1")
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--predictor-attempts", type=int, choices=range(1, 4), default=3)
-    p.add_argument("--predictor-min-f1", type=float, default=0.95)
     p.add_argument("--winit-epochs", type=int, default=1000)
-    p.add_argument("--results-dir", type=Path, default=ROOT / "results/table2_repair")
-    p.add_argument(
-        "--models-dir", type=Path, default=ROOT / "results/table2_repair/models"
-    )
+    p.add_argument("--results-dir", type=Path)
+    p.add_argument("--models-dir", type=Path)
     p.add_argument(
         "--data-root",
         type=Path,
@@ -277,7 +294,9 @@ def parse_args():
     )
     args = p.parse_args()
     args.datasets = (
-        list(DATASETS) if args.datasets == "all" else args.datasets.split(",")
+        list(TABLE_DATASETS[args.table])
+        if args.datasets == "all"
+        else args.datasets.split(",")
     )
     args.methods = args.methods.split(",")
     try:
@@ -286,17 +305,18 @@ def parse_args():
         p.error("folds must be comma-separated integers")
     if not args.folds or not set(args.folds) <= set(range(1, 6)):
         p.error("folds must be in 1..5")
-    if not set(args.datasets) <= DATASETS.keys() or not set(args.methods) <= set(
-        METHODS
-    ):
-        p.error("unknown dataset or method")
+    if not set(args.datasets) <= set(TABLE_DATASETS[args.table]) or not set(
+        args.methods
+    ) <= set(METHODS):
+        p.error("unknown dataset or method for this table")
     if (
         args.seed < 0
-        or not 0.95 <= args.predictor_min_f1 <= 1
         or args.winit_epochs < 1
         or (args.max_samples is not None and args.max_samples < 1)
     ):
-        p.error("invalid seed, quality threshold, epoch budget or sample limit")
+        p.error("invalid seed, epoch budget or sample limit")
+    args.results_dir = args.results_dir or ROOT / "results" / f"table{args.table}"
+    args.models_dir = args.models_dir or args.results_dir / "models"
     for name in ("models_dir", "results_dir", "data_root"):
         setattr(args, name, getattr(args, name).resolve())
     args.git_revision = (
@@ -309,8 +329,8 @@ def parse_args():
 
 
 def main(args):
-    results_root = args.results_dir / args.protocol / f"seed_{args.seed}"
-    models_root = args.models_dir / args.protocol / f"seed_{args.seed}"
+    results_root = args.results_dir / PROTOCOL / f"seed_{args.seed}"
+    models_root = args.models_dir / PROTOCOL / f"seed_{args.seed}"
     failures = []
     if not args.dry_run:
         write_json(
@@ -324,18 +344,18 @@ def main(args):
             stage: source_identity(stage, experiment)
             for stage in ("predictor", "ours", "sgt", "cortx", "winit", "evaluation")
         }
-        # Inspect all folds on resume, but only launch explicitly selected folds.
+        predictor_name = "Scomb_transformer" if args.table == 1 else "transformer"
         for fold in range(1, 6):
-            selected = fold in args.folds
-            models = models_root / dataset / f"fold_{fold}"
+            selected_fold = fold in args.folds
+            fold_models = models_root / dataset / f"fold_{fold}"
             logs = results_root / dataset / f"fold_{fold}"
             data = args.data_root / directory / f"split={fold}.pt"
             if not data.is_file() and not args.dry_run:
-                if selected:
+                if selected_fold:
                     failures.append(f"{dataset} fold {fold}: missing {data}")
                 continue
             base = dict(
-                schema_version=1,
+                schema_version=2,
                 dataset=dataset,
                 fold=fold,
                 seed=args.seed + fold - 1,
@@ -357,19 +377,20 @@ def main(args):
             def command(script, *options):
                 return [sys.executable, ROOT / script, *options]
 
-            predictor = models / f"transformer_split={fold}.pt"
-            predictor_config = dict(
-                epochs=epochs,
-                max_attempts=args.predictor_attempts,
-                minimum_macro_f1=args.predictor_min_f1,
-            )
-            pi = identity("predictor", predictor_config)
-            try:
-                if selected:
-                    run_stage(
-                        predictor,
-                        pi,
-                        command(
+            # Failed shared predictors must not trigger a fresh retry for each method.
+            failed_predictors = {}
+            for method in METHODS:
+                selected = selected_fold and method in args.methods
+                policy = predictor_policy(dataset, method)
+                models = fold_models / policy
+                try:
+                    dep = {}
+                    quality = dict(required=False)
+                    checkpoint = None
+                    if policy != "independent":
+                        predictor = models / f"{predictor_name}_split={fold}.pt"
+                        pi = identity("predictor", dict(epochs=epochs, policy=policy))
+                        predictor_command = command(
                             f"experiments/{experiment}/train_transformer.py",
                             "--seed",
                             args.seed,
@@ -379,129 +400,93 @@ def main(args):
                             models,
                             "--data-path",
                             data.parent,
-                            "--max-attempts",
-                            args.predictor_attempts,
-                            "--min-val-f1",
-                            args.predictor_min_f1,
-                        ),
-                        logs / "predictor.log",
-                        args,
-                    )
-                if args.dry_run:
-                    quality = dict(qualified=True, validation_macro_f1="pending")
-                else:
-                    if not reusable(predictor, pi):
-                        if selected:
-                            raise RuntimeError("Predictor metadata mismatch")
-                        continue
-                    quality = json.loads(sidecar(predictor).read_text()).get(
-                        "quality", {}
-                    )
-                    if (
-                        not quality.get("qualified")
-                        or quality.get("validation_macro_f1", 0) < args.predictor_min_f1
-                    ):
-                        raise RuntimeError("Predictor did not pass validation gate")
-            except (
-                OSError,
-                ValueError,
-                RuntimeError,
-                subprocess.CalledProcessError,
-            ) as error:
-                if selected:
-                    failures.append(f"{dataset} fold {fold}: {error}")
-                if selected and not args.dry_run:
-                    write_json(
-                        logs / "status.json",
-                        dict(status="predictor_failed", error=str(error)),
-                    )
-                continue
-            for method in METHODS:
-                selected_method = selected and method in args.methods
-                try:
-                    checkpoint = predictor
-                    dep = {"predictor_sha256": upstream(predictor)}
-                    extra = []
-                    if method == "ours":
-                        checkpoint = models / f"bc_full_split={fold}.pt"
-                        cv = (
-                            "legacy"
-                            if args.protocol
-                            in {"legacy-control", "connectivity-rollback-v1"}
-                            else "temporal-l1-v1"
                         )
-                        tv = (
-                            "legacy"
-                            if args.protocol
-                            in {"legacy-control", "connectivity-control"}
-                            else "repaired-v1"
-                        )
-                        ci = identity(
-                            "ours",
-                            dict(
-                                connectivity_version=cv,
-                                training_version=tv,
-                                epochs=100,
-                                gsat_r=0.5,
-                                gsat=1,
-                                connect=2,
-                                beta_exp=2,
-                                beta_sim=1,
-                                lam_label=1,
-                            ),
-                            dep,
-                        )
-                        train_cmd = command(
-                            f"experiments/{experiment}/bc_model_ptype.py",
-                            "--seed",
-                            args.seed,
-                            "--split-no",
-                            fold,
-                            "--models-path",
-                            models,
-                            "--data-path",
-                            data.parent,
-                            "--connectivity-version",
-                            cv,
-                            "--training-version",
-                            tv,
-                        )
-                    elif method in {"sgt+grad", "cortx"}:
-                        stage = "sgt" if method == "sgt+grad" else "cortx"
-                        checkpoint = models / f"{stage}_split={fold}.pt"
-                        ci = identity(
-                            stage,
-                            dict(
-                                protocol=args.protocol
-                                if stage == "sgt"
-                                else "released-reconstruction-v1",
-                                epochs=(
-                                    10 if args.protocol == "sgt-control" else epochs
+                        if dataset == "seqcomb_mv" and policy == "original":
+                            predictor_command += ["--original-predictor"]
+                        if policy in failed_predictors:
+                            raise RuntimeError(failed_predictors[policy])
+                        try:
+                            if selected:
+                                run_stage(
+                                    predictor,
+                                    pi,
+                                    predictor_command,
+                                    logs / f"predictor_{policy}.log",
+                                    args,
                                 )
-                                if stage == "sgt"
-                                else [100, 50],
-                            ),
-                            {} if stage == "sgt" else dep,
-                        )
-                        train_cmd = command(
-                            "experiments/other_baselines/train_synth_baselines.py",
-                            "--dataset",
-                            dataset,
-                            "--method",
-                            stage,
-                            "--seed",
-                            args.seed,
-                            "--split-no",
-                            fold,
-                            "--models-path",
-                            models,
-                            "--data-root",
-                            args.data_root,
-                            "--force",
-                        )
-                        if stage == "sgt" and args.protocol == "sgt-control":
-                            train_cmd += ["--sgt-control"]
-                            extra = ["--sgt-masked-input-control"]
+                            if args.dry_run:
+                                quality = dict(
+                                    qualified=True, validation_macro_f1="pending"
+                                )
+                            else:
+                                if not reusable(predictor, pi):
+                                    raise RuntimeError("Missing or stale predictor")
+                                quality = json.loads(
+                                    sidecar(predictor).read_text()
+                                ).get("quality", {})
+                                if policy == "qualified" and not quality.get(
+                                    "qualified"
+                                ):
+                                    raise RuntimeError(
+                                        "Predictor did not pass validation gate"
+                                    )
+                            quality = dict(quality, required=policy == "qualified")
+                        except (
+                            OSError,
+                            ValueError,
+                            RuntimeError,
+                            subprocess.CalledProcessError,
+                        ) as error:
+                            if selected:
+                                failed_predictors[policy] = str(error)
+                            raise
+                        dep["predictor_sha256"] = upstream(predictor)
+                        checkpoint = predictor
+                    recipe = recipe_name(dataset, method)
+                    if method in {"ours", "cortx", "sgt+grad"}:
+                        stage = "sgt" if method == "sgt+grad" else method
+                        filename = "bc_full" if method == "ours" else stage
+                        checkpoint = models / f"{filename}_split={fold}.pt"
+                        ci = identity(stage, dict(recipe=recipe), dep)
+                        if method == "ours":
+                            train_command = command(
+                                f"experiments/{experiment}/bc_model_ptype.py",
+                                "--seed",
+                                args.seed,
+                                "--split-no",
+                                fold,
+                                "--models-path",
+                                models,
+                                "--data-path",
+                                data.parent,
+                            )
+                        else:
+                            train_command = command(
+                                "experiments/other_baselines/train_synth_baselines.py",
+                                "--dataset",
+                                dataset,
+                                "--method",
+                                stage,
+                                "--seed",
+                                args.seed,
+                                "--split-no",
+                                fold,
+                                "--models-path",
+                                models,
+                                "--data-root",
+                                args.data_root,
+                                "--force",
+                            )
+                        if selected:
+                            run_stage(
+                                checkpoint,
+                                ci,
+                                train_command,
+                                logs / f"{method}_train.log",
+                                args,
+                            )
+                        if not args.dry_run and not reusable(checkpoint, ci):
+                            raise RuntimeError(f"Missing or stale {method} checkpoint")
                     elif method == "winit":
                         generator = models / f"winit_split={fold}"
                         gi = identity(
@@ -513,7 +498,7 @@ def main(args):
                                 batch_size=256,
                             ),
                         )
-                        if selected_method:
+                        if selected:
                             run_stage(
                                 generator,
                                 gi,
@@ -538,47 +523,30 @@ def main(args):
                         if not args.dry_run and not reusable(generator, gi):
                             raise RuntimeError("Missing or stale WinIT generator")
                         dep["generator_sha256"] = upstream(generator)
-                    if method in {"ours", "sgt+grad", "cortx"}:
-                        if selected_method:
-                            run_stage(
-                                checkpoint,
-                                ci,
-                                train_cmd,
-                                logs / f"{method}_train.log",
-                                args,
-                            )
-                        if not args.dry_run and not reusable(checkpoint, ci):
-                            raise RuntimeError(f"Missing or stale {method} checkpoint")
                     dep["checkpoint_sha256"] = upstream(checkpoint)
                     ei = identity(
                         "evaluation",
                         dict(
-                            method=method,
-                            protocol=args.protocol,
-                            max_samples=args.max_samples,
+                            method=method, recipe=recipe, max_samples=args.max_samples
                         ),
                         dep,
                     )
                     output = logs / f"{method}_results.json"
-                    complete = (
-                        args.max_samples is None
-                        and args.winit_epochs == 1000
-                        and args.protocol in REPRODUCTION_PROTOCOLS
-                    )
-                    training_provenance = (
-                        {}
-                        if args.dry_run
-                        else json.loads(sidecar(checkpoint).read_text())
+                    complete = args.max_samples is None and (
+                        method != "winit" or args.winit_epochs == 1000
                     )
                     enrich = dict(
-                        training_provenance=training_provenance,
-                        protocol=args.protocol,
+                        training_provenance={}
+                        if args.dry_run
+                        else json.loads(sidecar(checkpoint).read_text()),
+                        protocol=PROTOCOL,
+                        recipe=recipe,
                         completion_status="complete_fold" if complete else "diagnostic",
                         predictor_quality=quality,
                         provenance=ei,
                     )
-                    if selected_method and args.stage != "train":
-                        eval_cmd = command(
+                    if selected and args.stage != "train":
+                        eval_command = command(
                             "experiments/evaluation/saliency_exp_synth.py",
                             "--dataset",
                             experiment,
@@ -595,14 +563,13 @@ def main(args):
                             "--results-json",
                             output,
                             "--no-progress",
-                            *extra,
                         )
                         if args.max_samples is not None:
-                            eval_cmd += ["--max-samples", args.max_samples]
+                            eval_command += ["--max-samples", args.max_samples]
                         run_stage(
                             output,
                             ei,
-                            eval_cmd,
+                            eval_command,
                             logs / f"{method}_evaluation.log",
                             args,
                             enrich=enrich,
@@ -615,12 +582,13 @@ def main(args):
                     RuntimeError,
                     subprocess.CalledProcessError,
                 ) as error:
-                    if selected_method:
+                    if selected:
                         failures.append(f"{dataset} fold {fold} {method}: {error}")
-                        write_json(
-                            logs / f"{method}_status.json",
-                            dict(status="failed", error=str(error)),
-                        )
+                        if not args.dry_run:
+                            write_json(
+                                logs / f"{method}_status.json",
+                                dict(status="failed", error=str(error)),
+                            )
         if not args.dry_run:
             for method, records in by_method.items():
                 write_json(
@@ -644,15 +612,14 @@ def main(args):
                 sys.executable,
                 ROOT / "experiments/evaluation/summarize_synth.py",
                 "--table",
-                "2",
+                str(args.table),
                 results_root,
             ],
             check=True,
         )
     if failures:
         print("\n".join(failures), file=sys.stderr)
-        return 1
-    return 0
+    return int(bool(failures))
 
 
 if __name__ == "__main__":

@@ -95,13 +95,9 @@ sync_active_seed() {
         rsync -a "${ACTIVE_SEED_DIR}/results/" "${ACTIVE_ARCHIVE_DIR}/results/"
     fi
 
-    for dataset in freqshape scs_better; do
-        model_dir="${ACTIVE_SEED_DIR}/repo/experiments/${dataset}/models"
-        if [[ -d "${model_dir}" ]]; then
-            mkdir -p "${ACTIVE_ARCHIVE_DIR}/models/${dataset}"
-            rsync -a "${model_dir}/" "${ACTIVE_ARCHIVE_DIR}/models/${dataset}/"
-        fi
-    done
+    if [[ -d "${ACTIVE_SEED_DIR}/models" ]]; then
+        rsync -a "${ACTIVE_SEED_DIR}/models/" "${ACTIVE_ARCHIVE_DIR}/models/"
+    fi
 }
 
 clean_up() {
@@ -144,6 +140,26 @@ require_dir "${DATA_SOURCE}/SeqCombSingle"
 command -v rsync >/dev/null 2>&1 || die "rsync is required"
 
 mkdir -p "${WORK_DIR}" "${DATA_DIR}" "${ARCHIVE_DIR}"
+# Archive the submitted source once; all seeds use this same snapshot.
+mkdir -p "${ARCHIVE_DIR}/source"
+rsync -a \
+    --exclude='.git/' \
+    --exclude='.venv/' \
+    --exclude='dataset/' \
+    --exclude='datasets/' \
+    --exclude='logs/' \
+    --exclude='results/' \
+    --exclude='cluster_runs/' \
+    --exclude='timex_*/' \
+    --exclude='timex_table2_*/' \
+    --exclude='*.pt' \
+    --exclude='*.out' \
+    --exclude='__pycache__/' \
+    --exclude='experiments/freqshape/models/' \
+    --exclude='experiments/scs_better/models/' \
+    "${SUBMIT_DIR}/" "${ARCHIVE_DIR}/source/"
+git -C "${SUBMIT_DIR}" rev-parse HEAD > "${ARCHIVE_DIR}/git_revision.txt" || true
+git -C "${SUBMIT_DIR}" diff --binary > "${ARCHIVE_DIR}/implementation.patch" || true
 
 echo "Job ID: ${SLURM_JOB_ID}"
 echo "Node list: ${SLURM_JOB_NODELIST:-unknown}"
@@ -175,17 +191,7 @@ for seed in ${SEEDS}; do
 
     mkdir -p "${repo_dir}" "${seed_root}/results"
     echo "Staging source for base seed ${seed}"
-    rsync -a \
-        --exclude='.git/' \
-        --exclude='.venv/' \
-        --exclude='dataset/' \
-        --exclude='datasets/' \
-        --exclude='logs/' \
-        --exclude='results/' \
-        --exclude='cluster_runs/' \
-        --exclude='experiments/freqshape/models/' \
-        --exclude='experiments/scs_better/models/' \
-        "${SUBMIT_DIR}/" "${repo_dir}/"
+    rsync -a "${ARCHIVE_DIR}/source/" "${repo_dir}/"
     ln -s "${SUBMIT_DIR}/.venv" "${repo_dir}/.venv"
 
     export PYTHONPATH="${repo_dir}"
@@ -197,7 +203,8 @@ for seed in ${SEEDS}; do
             --methods ours,ig,dyna,winit,cortx,sgt+grad \
             --stage all \
             --seed "${seed}" \
-            --results-dir "${seed_root}/results"
+            --results-dir "${seed_root}/results" \
+            --models-dir "${seed_root}/models"
     )
     echo "=== Base seed ${seed} completed at $(date) ==="
 
